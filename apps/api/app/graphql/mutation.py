@@ -1,28 +1,31 @@
 """GraphQL mutation resolvers."""
 
+import logging
 from uuid import UUID
 
+import strawberry
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-import strawberry
 
 from app.db.session import get_session
-from app.models.thread import Thread as ThreadModel
 from app.models.space import MemberRole, Space as SpaceModel, SpaceMember as SpaceMemberModel
+from app.models.thread import Thread as ThreadModel
 from app.models.user import User as UserModel
 from app.utils.slug import generate_unique_slug
 
 from .types import (
-    CreateThreadInput,
     CreateSpaceInput,
+    CreateThreadInput,
     CreateUserInput,
-    Thread,
     Space,
-    UpdateThreadInput,
+    Thread,
     UpdateSpaceInput,
+    UpdateThreadInput,
     UpdateUserInput,
     User,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @strawberry.type
@@ -326,7 +329,7 @@ class Mutation:
         return False
 
     @strawberry.mutation
-    async def delete_thread(self, info: strawberry.types.Info, id: strawberry.ID) -> bool:
+    async def delete_thread(self, info: strawberry.types.Info, id: strawberry.ID) -> bool:  # noqa: PLR0915
         """
         Delete a thread by ID.
 
@@ -353,7 +356,8 @@ class Mutation:
                 user = getattr(request.state, "user", None)
 
                 if not user:
-                    return False
+                    msg = "Authentication required"
+                    raise ValueError(msg)
 
                 user_id = user.id
                 thread_id = UUID(str(id))
@@ -364,7 +368,8 @@ class Mutation:
                 thread_model = result.scalar_one_or_none()
 
                 if not thread_model:
-                    return False
+                    msg = "Thread not found"
+                    raise ValueError(msg)
 
                 # Check authorization based on thread type
                 is_creator = thread_model.created_by == user_id
@@ -376,7 +381,8 @@ class Mutation:
                     space_model = space_result.scalar_one_or_none()
 
                     if not space_model:
-                        return False
+                        msg = "Space not found"
+                        raise ValueError(msg)
 
                     is_owner = space_model.owner_id == user_id
 
@@ -391,24 +397,39 @@ class Mutation:
                     if not is_creator and not is_owner and not is_member:
                         msg = "Insufficient permissions to delete this thread"
                         raise ValueError(msg)
-                else:
-                    # Org-wide thread - only creator can delete (TODO: add org admin check)
-                    if not is_creator:
-                        msg = "Only the creator can delete org-wide threads"
-                        raise ValueError(msg)
+                elif not is_creator:
+                    msg = "Only the creator can delete org-wide threads"
+                    raise ValueError(msg)
 
                 await session.delete(thread_model)
                 await session.commit()
 
                 return True
 
-            except ValueError as e:
+            except IntegrityError as e:
                 await session.rollback()
-                # Re-raise authorization errors
-                if "permissions" in str(e) or "creator" in str(e):
-                    raise
-                # Invalid UUID format
-                return False
+                error_str = str(e).lower()
+
+                # Parse IntegrityError and provide user-friendly messages
+                # while hiding database schema details
+                if "fk_threads_organization_id" in error_str:
+                    msg = "Invalid organization specified"
+                elif "fk_threads_space_id" in error_str or "fk_spaces_" in error_str:
+                    msg = "Invalid space specified"
+                elif "not-null constraint" in error_str:
+                    msg = "Required field missing"
+                elif "unique constraint" in error_str:
+                    msg = "Duplicate entry already exists"
+                else:
+                    # Generic message for unknown integrity errors
+                    msg = "Invalid data provided"
+
+                logger.exception("IntegrityError in mutation")
+
+                raise ValueError(msg) from e
+            except ValueError:
+                await session.rollback()
+                raise  # Re-raise ValueError to propagate to GraphQL
 
         return False
 
@@ -451,7 +472,8 @@ class Mutation:
                 user = getattr(request.state, "user", None)
 
                 if not user:
-                    return None
+                    msg = "Authentication required"
+                    raise ValueError(msg)
 
                 user_id = user.id
                 org_id = UUID(str(input.organization_id))
@@ -467,7 +489,8 @@ class Mutation:
                     space_model = result.scalar_one_or_none()
 
                     if not space_model:
-                        return None
+                        msg = "Space not found"
+                        raise ValueError(msg)
 
                     # Verify space belongs to the organization
                     if space_model.organization_id != org_id:
@@ -477,7 +500,8 @@ class Mutation:
                     # Check if user is owner or member
                     is_owner = space_model.owner_id == user_id
                     member_stmt = select(SpaceMemberModel).where(
-                        (SpaceMemberModel.space_id == space_id) & (SpaceMemberModel.user_id == user_id)
+                        (SpaceMemberModel.space_id == space_id)
+                        & (SpaceMemberModel.user_id == user_id)
                     )
                     member_result = await session.execute(member_stmt)
                     is_member = member_result.scalar_one_or_none() is not None
@@ -503,14 +527,35 @@ class Mutation:
 
                 return Thread.from_model(thread_model)
 
-            except (ValueError, IntegrityError):
+            except IntegrityError as e:
                 await session.rollback()
-                return None
+                error_str = str(e).lower()
+
+                # Parse IntegrityError and provide user-friendly messages
+                # while hiding database schema details
+                if "fk_threads_organization_id" in error_str:
+                    msg = "Invalid organization specified"
+                elif "fk_threads_space_id" in error_str or "fk_spaces_" in error_str:
+                    msg = "Invalid space specified"
+                elif "not-null constraint" in error_str:
+                    msg = "Required field missing"
+                elif "unique constraint" in error_str:
+                    msg = "Duplicate entry already exists"
+                else:
+                    # Generic message for unknown integrity errors
+                    msg = "Invalid data provided"
+
+                logger.exception("IntegrityError in mutation")
+
+                raise ValueError(msg) from e
+            except ValueError:
+                await session.rollback()
+                raise  # Re-raise ValueError to propagate to GraphQL
 
         return None
 
     @strawberry.mutation
-    async def update_thread(
+    async def update_thread(  # noqa: PLR0915
         self, info: strawberry.types.Info, id: strawberry.ID, input: UpdateThreadInput
     ) -> Thread | None:
         """
@@ -549,7 +594,8 @@ class Mutation:
                 user = getattr(request.state, "user", None)
 
                 if not user:
-                    return None
+                    msg = "Authentication required"
+                    raise ValueError(msg)
 
                 user_id = user.id
                 thread_id = UUID(str(id))
@@ -560,7 +606,8 @@ class Mutation:
                 thread_model = result.scalar_one_or_none()
 
                 if not thread_model:
-                    return None
+                    msg = "Thread not found"
+                    raise ValueError(msg)
 
                 # Check authorization based on thread type
                 is_creator = thread_model.created_by == user_id
@@ -572,18 +619,17 @@ class Mutation:
                     space_model = space_result.scalar_one_or_none()
 
                     if not space_model:
-                        return None
+                        msg = "Space not found"
+                        raise ValueError(msg)
 
                     is_owner = space_model.owner_id == user_id
 
                     if not is_creator and not is_owner:
                         msg = "Insufficient permissions to update this thread"
                         raise ValueError(msg)
-                else:
-                    # Org-wide thread - only creator can update (TODO: add org admin check)
-                    if not is_creator:
-                        msg = "Only the creator can update org-wide threads"
-                        raise ValueError(msg)
+                elif not is_creator:
+                    msg = "Only the creator can update org-wide threads"
+                    raise ValueError(msg)
 
                 # Update fields if provided
                 if input.title is not None:
@@ -596,8 +642,29 @@ class Mutation:
 
                 return Thread.from_model(thread_model)
 
+            except IntegrityError as e:
+                await session.rollback()
+                error_str = str(e).lower()
+
+                # Parse IntegrityError and provide user-friendly messages
+                # while hiding database schema details
+                if "fk_threads_organization_id" in error_str:
+                    msg = "Invalid organization specified"
+                elif "fk_threads_space_id" in error_str or "fk_spaces_" in error_str:
+                    msg = "Invalid space specified"
+                elif "not-null constraint" in error_str:
+                    msg = "Required field missing"
+                elif "unique constraint" in error_str:
+                    msg = "Duplicate entry already exists"
+                else:
+                    # Generic message for unknown integrity errors
+                    msg = "Invalid data provided"
+
+                logger.exception("IntegrityError in mutation")
+
+                raise ValueError(msg) from e
             except ValueError:
                 await session.rollback()
-                return None
+                raise  # Re-raise ValueError to propagate to GraphQL
 
         return None

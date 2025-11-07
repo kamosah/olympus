@@ -52,7 +52,7 @@ async def generate_sse_events(
     try:
         # Stream events with hard timeout protection
         async with asyncio.timeout(THREAD_TIMEOUT_SECONDS):
-            async for event in ai_agent_service.process_query_stream(
+            async for event in ai_agent_service.process_thread_stream(
                 query=query,
                 db=db,
                 space_id=space_id,
@@ -102,7 +102,9 @@ async def stream_thread_response(
     space_id: Annotated[
         UUID | None, QueryParam(description="Space ID to filter search results")
     ] = None,
-    user_id: Annotated[UUID | None, QueryParam(description="User ID for thread attribution")] = None,
+    user_id: Annotated[
+        UUID | None, QueryParam(description="User ID for thread attribution")
+    ] = None,
     save_to_db: Annotated[
         bool, QueryParam(description="Save thread and results to database")
     ] = False,

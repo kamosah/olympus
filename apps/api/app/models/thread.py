@@ -42,7 +42,10 @@ class Thread(Base):
 
     # Organization-level scoping (required)
     organization_id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
 
     # Space-level scoping (optional - for backwards compat and space-specific threads)

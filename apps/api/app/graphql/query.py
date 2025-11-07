@@ -491,9 +491,18 @@ class Query:
                         (ThreadModel.id == thread_id)
                         & (
                             # Access via space membership
-                            ((ThreadModel.space_id.isnot(None)) & ((SpaceModel.owner_id == user_id) | (SpaceMemberModel.user_id == user_id)))
+                            (
+                                (ThreadModel.space_id.isnot(None))
+                                & (
+                                    (SpaceModel.owner_id == user_id)
+                                    | (SpaceMemberModel.user_id == user_id)
+                                )
+                            )
                             # OR thread creator for org-wide threads (TODO: add org membership check)
-                            | ((ThreadModel.space_id.is_(None)) & (ThreadModel.created_by == user_id))
+                            | (
+                                (ThreadModel.space_id.is_(None))
+                                & (ThreadModel.created_by == user_id)
+                            )
                         )
                     )
                     .distinct()

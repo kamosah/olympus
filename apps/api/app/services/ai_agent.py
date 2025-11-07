@@ -230,7 +230,7 @@ class AIAgentService:
 
         return thread_record
 
-    async def process_query_stream(
+    async def process_thread_stream(
         self,
         query: str,
         db: AsyncSession | None = None,
@@ -240,7 +240,7 @@ class AIAgentService:
         save_to_db: bool = False,
     ) -> AsyncGenerator[dict[str, Any], None]:
         """
-        Process query with streaming support for real-time token delivery.
+        Process thread query with streaming support for real-time token delivery.
 
         Yields events as the response is generated, suitable for SSE endpoints.
 
@@ -248,9 +248,9 @@ class AIAgentService:
             query: User's natural language question
             db: Database session for vector search and storage
             space_id: Space ID to filter search results
-            user_id: User ID for query attribution (required if save_to_db=True)
+            user_id: User ID for thread attribution (required if save_to_db=True)
             context: Optional pre-retrieved document chunks (bypasses vector search)
-            save_to_db: Whether to save query and results to database
+            save_to_db: Whether to save thread and results to database
 
         Yields:
             Event dictionaries with types: 'token', 'citations', 'confidence', 'done'
@@ -258,7 +258,7 @@ class AIAgentService:
         Example:
             >>> service = AIAgentService()
             >>> async with get_db() as db:
-            ...     async for event in service.process_query_stream(
+            ...     async for event in service.process_thread_stream(
             ...         "What is AI?",
             ...         db=db,
             ...         space_id=space_uuid,
@@ -281,7 +281,7 @@ class AIAgentService:
         # Step 1: Retrieve context (if not provided)
         if not context:
             # Import here to avoid circular imports when vector search is available
-            from app.agents.query_agent import retrieve_context
+            from app.agents.thread_agent import retrieve_context
 
             state = await retrieve_context(state)
 

@@ -30,7 +30,10 @@ class OrganizationMember(Base):
 
     # Member fields
     organization_id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
 
     user_id: Mapped[UUID] = mapped_column(
@@ -38,7 +41,11 @@ class OrganizationMember(Base):
     )
 
     organization_role: Mapped[OrganizationRole] = mapped_column(
-        SQLEnum(OrganizationRole, name="organization_role", values_callable=lambda x: [e.value for e in x]),
+        SQLEnum(
+            OrganizationRole,
+            name="organization_role",
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
         default=OrganizationRole.MEMBER,
     )
@@ -49,7 +56,9 @@ class OrganizationMember(Base):
     user: Mapped["User"] = relationship("User", back_populates="organization_memberships")
 
     # Constraints
-    __table_args__ = (UniqueConstraint("organization_id", "user_id", name="unique_organization_user"),)
+    __table_args__ = (
+        UniqueConstraint("organization_id", "user_id", name="unique_organization_user"),
+    )
 
     def __repr__(self) -> str:
         """String representation of the organization member."""

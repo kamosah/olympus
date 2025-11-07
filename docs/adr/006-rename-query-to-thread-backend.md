@@ -145,7 +145,6 @@ ALTER TABLE query_messages RENAME TO thread_messages;
 ALTER TABLE query_sources RENAME TO thread_sources;
 
 -- Rename columns
-ALTER TABLE threads RENAME COLUMN created_by TO created_by;
 ALTER TABLE thread_messages RENAME COLUMN query_id TO thread_id;
 ALTER TABLE thread_sources RENAME COLUMN query_id TO thread_id;
 

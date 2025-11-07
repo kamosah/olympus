@@ -38,4 +38,6 @@ class ThreadDocument(Base):
     def __repr__(self) -> str:
         """String representation of the thread-document association."""
         score = f", relevance={self.relevance_score:.3f}" if self.relevance_score else ""
-        return f"<ThreadDocument(thread_id={self.thread_id}, document_id={self.document_id}{score})>"
+        return (
+            f"<ThreadDocument(thread_id={self.thread_id}, document_id={self.document_id}{score})>"
+        )
