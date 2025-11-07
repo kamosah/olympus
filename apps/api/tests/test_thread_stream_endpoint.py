@@ -11,6 +11,7 @@ Tests the /api/thread/stream endpoint including:
 
 import asyncio
 import json
+from typing import Any, AsyncGenerator
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -22,7 +23,7 @@ class TestThreadStreamEndpoint:
     """Integration tests for SSE streaming endpoint."""
 
     @pytest.mark.asyncio
-    async def test_successful_thread_streaming(self, async_client: AsyncClient):
+    async def test_successful_thread_streaming(self, async_client: AsyncClient) -> None:
         """Test successful SSE streaming with all event types."""
         # Mock AI agent service
         mock_events = [
@@ -49,7 +50,7 @@ class TestThreadStreamEndpoint:
             },
         ]
 
-        async def mock_stream(*args, **kwargs):
+        async def mock_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[dict[str, Any], None]:
             for event in mock_events:
                 yield event
 
@@ -87,12 +88,12 @@ class TestThreadStreamEndpoint:
         assert events[4]["type"] == "done"
 
     @pytest.mark.asyncio
-    async def test_query_timeout_handling(self, async_client: AsyncClient):
-        """Test that queries timeout after QUERY_TIMEOUT_SECONDS."""
+    async def test_query_timeout_handling(self, async_client: AsyncClient) -> None:
+        """Test that queries timeout after THREAD_TIMEOUT_SECONDS."""
         # Mock timeout to 2 seconds for faster test
         mock_timeout = 2
 
-        async def slow_stream(*args, **kwargs):
+        async def slow_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[dict[str, Any], None]:
             # Simulate a query that takes too long
             await asyncio.sleep(mock_timeout + 1)
             yield {"type": "token", "content": "Too late"}
@@ -101,7 +102,7 @@ class TestThreadStreamEndpoint:
             patch(
                 "app.routes.thread_stream.ai_agent_service.process_thread_stream"
             ) as mock_process,
-            patch("app.routes.thread_stream.QUERY_TIMEOUT_SECONDS", mock_timeout),
+            patch("app.routes.thread_stream.THREAD_TIMEOUT_SECONDS", mock_timeout),
         ):
             mock_process.side_effect = lambda *args, **kwargs: slow_stream(*args, **kwargs)
 
