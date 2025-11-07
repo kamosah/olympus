@@ -11,7 +11,8 @@ Tests the /api/thread/stream endpoint including:
 
 import asyncio
 import json
-from typing import Any, AsyncGenerator
+from typing import Any
+from collections.abc import AsyncGenerator
 from unittest.mock import patch
 from uuid import uuid4
 
