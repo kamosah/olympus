@@ -11,7 +11,6 @@ from app.models.document_chunk import DocumentChunk as DocumentChunkModel
 from app.models.organization import Organization as OrganizationModel
 from app.models.organization_member import (
     OrganizationMember as OrganizationMemberModel,
-    OrganizationRole as OrganizationRoleEnum,
 )
 from app.models.space import Space as SpaceModel
 from app.models.thread import Thread as ThreadModel
