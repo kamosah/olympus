@@ -404,10 +404,7 @@ class Mutation:
                 elif not is_creator:
                     # Check if user is organization admin or owner
                     org_member_stmt = select(OrganizationMemberModel).where(
-                        (
-                            OrganizationMemberModel.organization_id
-                            == thread_model.organization_id
-                        )
+                        (OrganizationMemberModel.organization_id == thread_model.organization_id)
                         & (OrganizationMemberModel.user_id == user_id)
                         & (
                             OrganizationMemberModel.organization_role.in_(
@@ -419,9 +416,7 @@ class Mutation:
                     is_org_admin = org_member_result.scalar_one_or_none() is not None
 
                     if not is_org_admin:
-                        msg = (
-                            "Only the creator or organization admin can delete org-wide threads"
-                        )
+                        msg = "Only the creator or organization admin can delete org-wide threads"
                         raise ValueError(msg)
 
                 await session.delete(thread_model)
@@ -653,10 +648,7 @@ class Mutation:
                 elif not is_creator:
                     # Check if user is organization admin or owner
                     org_member_stmt = select(OrganizationMemberModel).where(
-                        (
-                            OrganizationMemberModel.organization_id
-                            == thread_model.organization_id
-                        )
+                        (OrganizationMemberModel.organization_id == thread_model.organization_id)
                         & (OrganizationMemberModel.user_id == user_id)
                         & (
                             OrganizationMemberModel.organization_role.in_(
@@ -668,9 +660,7 @@ class Mutation:
                     is_org_admin = org_member_result.scalar_one_or_none() is not None
 
                     if not is_org_admin:
-                        msg = (
-                            "Only the creator or organization admin can update org-wide threads"
-                        )
+                        msg = "Only the creator or organization admin can update org-wide threads"
                         raise ValueError(msg)
 
                 # Update fields if provided
