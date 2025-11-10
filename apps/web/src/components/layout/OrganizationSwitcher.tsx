@@ -2,7 +2,10 @@
 
 import { useState } from 'react';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { useOrganizations } from '@/hooks/queries/useOrganizations';
+import {
+  useOrganizations,
+  type Organization,
+} from '@/hooks/queries/useOrganizations';
 import {
   Button,
   DropdownMenu,
@@ -21,6 +24,22 @@ interface OrganizationSwitcherProps {
 }
 
 /**
+ * Helper function to map Organization to auth store format
+ */
+function mapOrganizationToStoreFormat(org: Organization) {
+  return {
+    id: org.id,
+    name: org.name,
+    slug: org.slug,
+    description: org.description,
+    ownerId: org.ownerId,
+    memberCount: org.memberCount,
+    spaceCount: org.spaceCount,
+    threadCount: org.threadCount,
+  };
+}
+
+/**
  * OrganizationSwitcher - Hex-style dropdown for switching between organizations
  *
  * Design: Follows Hex workspace switcher pattern with clean dropdown,
@@ -28,7 +47,7 @@ interface OrganizationSwitcherProps {
  */
 export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
   const { currentOrganization, setCurrentOrganization } = useAuthStore();
-  const { organizations, isLoading } = useOrganizations();
+  const { organizations = [], isLoading } = useOrganizations();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
@@ -36,34 +55,14 @@ export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
     // For small arrays (typical: 1-5 orgs), .find() is more efficient than Map lookup
     const org = organizations.find((o) => o.id === orgId);
     if (org) {
-      setCurrentOrganization({
-        id: org.id,
-        name: org.name,
-        slug: org.slug,
-        description: org.description,
-        ownerId: org.ownerId,
-        memberCount: org.memberCount,
-        spaceCount: org.spaceCount,
-        threadCount: org.threadCount,
-      });
+      setCurrentOrganization(mapOrganizationToStoreFormat(org));
     }
   };
 
-  const handleOrganizationCreated = (organizationId: string) => {
+  const handleOrganizationCreated = (organization: Organization) => {
     // Auto-select the newly created organization
-    const org = organizations.find((o) => o.id === organizationId);
-    if (org) {
-      setCurrentOrganization({
-        id: org.id,
-        name: org.name,
-        slug: org.slug,
-        description: org.description,
-        ownerId: org.ownerId,
-        memberCount: org.memberCount,
-        spaceCount: org.spaceCount,
-        threadCount: org.threadCount,
-      });
-    }
+    // Using the organization object directly avoids race condition with query refetch
+    setCurrentOrganization(mapOrganizationToStoreFormat(organization));
   };
 
   if (isLoading) {
