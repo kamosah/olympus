@@ -136,11 +136,10 @@ export function createOrganizationMembersColumns(
       },
     },
     {
-      accessorKey: 'email',
+      accessorKey: 'user.email',
       header: 'Email',
       cell: ({ row }) => {
         const member = row.original;
-        const email = row.getValue('email') as string;
         return (
           <div className="text-sm text-gray-500">{member?.user?.email}</div>
         );

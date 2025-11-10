@@ -517,23 +517,43 @@ See [Frontend Guide - GraphQL Queries & React Query Hooks](./docs/guides/fronten
 
 ### GitHub Operations
 
-**IMPORTANT**: Use GitHub MCP tools instead of `gh` CLI for all GitHub operations:
+**Primary Method**: Use `gh` CLI for all GitHub operations (installed and authenticated):
 
-- **PR operations**: Use `mcp__github__get_pull_request`, `mcp__github__get_pull_request_comments`, `mcp__github__create_pull_request`, etc.
-- **Issue management**: Use `mcp__github__create_issue`, `mcp__github__list_issues`, `mcp__github__get_issue`, etc.
-- **Repository operations**: Use `mcp__github__get_file_contents`, `mcp__github__push_files`, `mcp__github__create_branch`, etc.
-- **Code review**: Use `mcp__github__create_pull_request_review`, `mcp__github__get_pull_request_files`, etc.
+```bash
+# PR operations
+gh pr view 14                              # View PR details
+gh pr comment 14 --body "Comment text"     # Add comment
+gh pr list                                 # List PRs
+gh pr create --title "Title" --body "Body" # Create PR
+gh pr diff 14                              # View PR diff
+gh pr checks 14                            # View PR checks
 
-**Rationale**: GitHub MCP provides better integration and doesn't require `gh` CLI to be installed in the Docker environment.
+# Issue operations
+gh issue create --title "Title" --body "Body"  # Create issue
+gh issue list                                  # List issues
+gh issue view 14                               # View issue
+gh issue comment 14 --body "Comment text"      # Add comment
+
+# Repository operations
+gh repo view                               # View repository
+gh api repos/kamosah/olympus/pulls/14      # API access
+```
 
 **Example PR review workflow**:
 
 ```bash
 # Fetch PR details
-mcp__github__get_pull_request(owner="kamosah", repo="olympus", pull_number=11)
+gh pr view 14
 
-# Get PR comments
-mcp__github__get_pull_request_comments(owner="kamosah", repo="olympus", pull_number=11)
+# Get PR diff and comments
+gh pr diff 14
+gh pr view 14 --comments
+
+# Add review comment
+gh pr comment 14 --body "Review comment text"
+
+# Check PR status
+gh pr checks 14
 ```
 
 ### GraphQL Workflow

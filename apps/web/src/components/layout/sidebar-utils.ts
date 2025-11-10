@@ -14,7 +14,9 @@ export function resolveHref(
   if (typeof href === 'function') {
     // Dynamic href - need org ID
     if (!orgId) {
-      console.warn('Dynamic href requires organizationId but none provided');
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('Dynamic href requires organizationId but none provided');
+      }
       return '#';
     }
     return href(orgId);
