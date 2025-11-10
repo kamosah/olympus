@@ -49,9 +49,6 @@ export function CreateOrganizationForm({
     },
   });
 
-  const nameValue = form.watch('name');
-  const descriptionValue = form.watch('description');
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -64,11 +61,15 @@ export function CreateOrganizationForm({
                 Name <span className="text-red-500">*</span>
               </FormLabel>
               <FormControl>
-                <Input placeholder="Acme Inc." {...field} />
+                <Input
+                  placeholder="Acme Inc."
+                  aria-required="true"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
               <p className="text-xs text-gray-500">
-                {nameValue?.length || 0}/100
+                {field.value?.length || 0}/100
               </p>
             </FormItem>
           )}
@@ -89,7 +90,7 @@ export function CreateOrganizationForm({
               </FormControl>
               <FormMessage />
               <p className="text-xs text-gray-500">
-                {descriptionValue?.length || 0}/500
+                {field.value?.length || 0}/500
               </p>
             </FormItem>
           )}

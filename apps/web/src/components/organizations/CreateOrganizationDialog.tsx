@@ -11,13 +11,16 @@ import {
   CreateOrganizationForm,
   type OrganizationFormData,
 } from './CreateOrganizationForm';
-import { useCreateOrganization } from '@/hooks/queries/useOrganizations';
+import {
+  useCreateOrganization,
+  type Organization,
+} from '@/hooks/queries/useOrganizations';
 import { toast } from 'sonner';
 
 interface CreateOrganizationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess?: (organizationId: string) => void;
+  onSuccess?: (organization: Organization) => void;
 }
 
 export function CreateOrganizationDialog({
@@ -25,7 +28,7 @@ export function CreateOrganizationDialog({
   onOpenChange,
   onSuccess,
 }: CreateOrganizationDialogProps) {
-  const { createOrganization, isCreating, error } = useCreateOrganization();
+  const { createOrganization, isCreating } = useCreateOrganization();
 
   const handleSubmit = async (data: OrganizationFormData) => {
     try {
@@ -39,12 +42,12 @@ export function CreateOrganizationDialog({
       if (result.createOrganization) {
         toast.success('Organization created successfully!');
         onOpenChange(false);
-        onSuccess?.(result.createOrganization.id);
+        onSuccess?.(result.createOrganization);
       }
     } catch (err) {
       console.error('Failed to create organization:', err);
       toast.error(
-        error instanceof Error ? error.message : 'Failed to create organization'
+        err instanceof Error ? err.message : 'Failed to create organization'
       );
     }
   };
