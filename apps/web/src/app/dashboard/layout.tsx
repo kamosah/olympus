@@ -23,7 +23,7 @@ export default function DashboardLayout({
         <AppSidebar />
 
         {/* Main Content - scrollable area */}
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-y-auto p-8 min-h-0">
           <EmailVerificationBanner />
           {children}
         </main>
