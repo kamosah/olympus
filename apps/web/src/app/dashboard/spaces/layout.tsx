@@ -10,5 +10,5 @@ export default function SpacesLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <div className="p-8">{children}</div>;
+  return <div>{children}</div>;
 }
