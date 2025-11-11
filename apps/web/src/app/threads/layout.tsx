@@ -21,7 +21,7 @@ interface ThreadsLayoutProps {
  */
 export default function ThreadsLayout({ children }: ThreadsLayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen flex flex-col bg-gray-50">
       {/* Top Navigation */}
       <AppHeader />
 
@@ -30,7 +30,7 @@ export default function ThreadsLayout({ children }: ThreadsLayoutProps) {
         <AppSidebar />
 
         {/* Main Content */}
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-y-auto min-h-0">
           <EmailVerificationBanner />
           <ThreadsPanelProvider>{children}</ThreadsPanelProvider>
         </main>
