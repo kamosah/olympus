@@ -80,7 +80,6 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { useState } from 'react';
 
 function makeQueryClient() {
   return new QueryClient({
@@ -356,6 +355,8 @@ export function ThreadsChat({ threadId }: { threadId: string }) {
 ### Pattern 5: Infinite Scroll with SSR
 
 **Use Case**: Paginated lists, prefetch first page on server.
+
+> **Note**: When using `prefetchInfiniteQuery`, you must include the `initialPageParam` parameter. Regular `prefetchQuery` (as shown in Patterns 1-3) does not require this parameter.
 
 **Server Component** (`app/(dashboard)/documents/page.tsx`):
 
