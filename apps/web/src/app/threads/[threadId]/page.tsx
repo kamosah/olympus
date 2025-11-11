@@ -1,6 +1,6 @@
 'use client';
 
-import { ThreadInterface } from '@/components/queries/ThreadInterface';
+import { ThreadInterface } from '@/components/threads/ThreadInterface';
 import { ThreadsPanel } from '@/components/threads/ThreadsPanel';
 import { useThread } from '@/hooks/useThreads';
 import { Loader2 } from 'lucide-react';

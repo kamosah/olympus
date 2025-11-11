@@ -1,6 +1,6 @@
 'use client';
 
-import { ThreadInterface } from '@/components/queries/ThreadInterface';
+import { ThreadInterface } from '@/components/threads/ThreadInterface';
 import { ThreadsPanel } from '@/components/threads/ThreadsPanel';
 import { AnimatePresence } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';

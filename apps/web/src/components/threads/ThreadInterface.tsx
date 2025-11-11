@@ -11,8 +11,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { ThreadsEmptyState } from '../threads/ThreadsEmptyState';
 import { CitationList } from './CitationList';
-import { QueryMessage } from './QueryMessage';
-import { QueryResponse } from './QueryResponse';
+import { ThreadMessage } from './ThreadMessage';
+import { ThreadResponse } from './ThreadResponse';
 import { ThreadInput } from './ThreadInput';
 
 interface ThreadInterfaceProps {
@@ -262,7 +262,7 @@ export function ThreadInterface({
           <div className="max-w-3xl mx-auto">
             {conversationHistory.map((message, index) => (
               <div key={index}>
-                <QueryMessage
+                <ThreadMessage
                   role={message.role}
                   content={message.content}
                   timestamp={message.timestamp}
@@ -281,7 +281,7 @@ export function ThreadInterface({
 
             {/* Active Streaming Response - Only show while actively streaming or completed but not yet in history */}
             {shouldShowActiveResponse && (
-              <QueryResponse
+              <ThreadResponse
                 response={response}
                 citations={citations}
                 isStreaming={isStreaming}
@@ -297,7 +297,7 @@ export function ThreadInterface({
       </ScrollArea>
 
       {/* Input Area - Empty state sits naturally above input */}
-      <div className="flex-shrink-0">
+      <div className="flex-shrink-0 pb-2">
         {/* Empty State - Shows above input when no messages */}
         {conversationHistory.length === 0 && !isStreaming && (
           <div className="flex items-center justify-center py-12">
