@@ -27,7 +27,7 @@ This ADR evaluates micro frontend architecture patterns for the Olympus dashboar
 - **Monorepo**: Turborepo with Next.js 14 frontend (`apps/web`), FastAPI backend (`apps/api`)
 - **Deployment**: Local Docker (development), Vercel planned (frontend), Render/Fly.io planned (backend)
 - **State Management**: React Query (server state) + Zustand (client state)
-- **Design System**: Shadcn-ui (`@olympus/ui`) with Hex aesthetic
+- **Design System**: shadcn/ui (`@olympus/ui`) with Hex aesthetic
 
 ### Problem Statement
 
@@ -42,7 +42,7 @@ As Olympus grows, we need:
 ### Constraints
 
 - Must work with existing Next.js 14 + React 18 stack
-- Must preserve TailwindCSS + Shadcn-ui design system
+- Must preserve Tailwind CSS + shadcn/ui design system
 - Must support React Query + Zustand state management
 - Must integrate with FastAPI GraphQL backend
 - Team size: 2-5 developers (growing to 10+)
@@ -67,7 +67,7 @@ apps/
 └── api/                      # FastAPI backend
 
 packages/
-├── ui/                       # Shadcn-ui components (@olympus/ui)
+├── ui/                       # shadcn/ui components (@olympus/ui)
 ├── shared-state/             # React Query + Zustand stores
 ├── auth/                     # Authentication logic
 └── types/                    # Shared TypeScript types
@@ -343,8 +343,8 @@ apps/
 │   ├── next.config.js       # Module Federation host
 │   └── webpack.config.js
 ├── threads/                 # Remote app
-│   ├── next.config.js       # Module Federation remote
-│   └── exposes: { './Threads': './src/App' }
+│   ├── next.config.js       # Module Federation remote config
+│   └── webpack.config.js
 ├── projects/                # Remote app
 └── notebook/                # Remote app
 
@@ -787,7 +787,7 @@ module.exports = {
 ### Micro Frontends
 
 - [Webpack Module Federation Documentation](https://webpack.js.org/concepts/module-federation/)
-- [Next.js Micro Frontends with Module Federation](https://nextjs.org/docs/advanced-features/module-federation)
+- [Next.js Module Federation Example (Community)](https://github.com/module-federation/module-federation-examples/tree/master/nextjs)
 - [Micro Frontend Architecture Patterns](https://martinfowler.com/articles/micro-frontends.html)
 
 ---
