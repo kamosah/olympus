@@ -1,8 +1,8 @@
 'use client';
 
 import { useDocuments } from '@/hooks/useDocuments';
-import { useSpaces } from '@/hooks/useSpaces';
 import { useThreads } from '@/hooks/useThreads';
+import { useDashboardStats } from '@/hooks/queries/useDashboardStats';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import {
   DashboardStatCard,
@@ -17,56 +17,29 @@ import {
   RecentThreadItemSkeleton,
 } from '@/components/dashboard/RecentThreadItem';
 import { FileText, MessageSquare, Database, Zap } from 'lucide-react';
-import { useMemo } from 'react';
-import { startOfMonth } from 'date-fns';
 
 export default function DashboardPage() {
   const { currentOrganization } = useAuthStore();
 
-  // Fetch data
-  const {
-    documents,
-    total: totalDocuments,
-    isLoading: isLoadingDocuments,
-  } = useDocuments();
-  const { spaces, isLoading: isLoadingSpaces } = useSpaces();
-  const { threads, isLoading: isLoadingThreads } = useThreads({
+  // Fetch dashboard stats (efficient COUNT queries)
+  const { stats, isLoading: isLoadingStats } = useDashboardStats({
     organizationId: currentOrganization?.id,
   });
 
-  // Calculate threads this month
-  const threadsThisMonth = useMemo(() => {
-    if (!threads) return 0;
-    const startOfCurrentMonth = startOfMonth(new Date());
-    return threads.filter((thread) => {
-      const threadDate = new Date(thread.createdAt);
-      return threadDate >= startOfCurrentMonth;
-    }).length;
-  }, [threads]);
+  // Fetch recent documents (only top 3)
+  const { documents, isLoading: isLoadingDocuments } = useDocuments({
+    limit: 3,
+  });
 
-  // Get recent documents (top 3)
-  const recentDocuments = useMemo(() => {
-    if (!documents) return [];
-    return [...documents]
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      )
-      .slice(0, 3);
-  }, [documents]);
+  // Fetch recent threads (only top 3)
+  const { threads, isLoading: isLoadingThreads } = useThreads({
+    organizationId: currentOrganization?.id,
+    limit: 3,
+  });
 
-  // Get recent threads (top 3)
-  const recentThreads = useMemo(() => {
-    if (!threads) return [];
-    return [...threads]
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      )
-      .slice(0, 3);
-  }, [threads]);
-
-  const isLoading = isLoadingDocuments || isLoadingSpaces || isLoadingThreads;
+  // Documents and threads are already sorted by created_at desc from the API
+  const recentDocuments = documents || [];
+  const recentThreads = threads || [];
 
   return (
     <div className="space-y-6">
@@ -82,7 +55,7 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {isLoading ? (
+        {isLoadingStats || !stats ? (
           <>
             <DashboardStatCardSkeleton />
             <DashboardStatCardSkeleton />
@@ -94,28 +67,28 @@ export default function DashboardPage() {
             <DashboardStatCard
               icon={FileText}
               label="Total Documents"
-              value={totalDocuments}
+              value={stats.totalDocuments}
               iconBgColor="bg-blue-100"
               iconColor="text-blue-600"
             />
             <DashboardStatCard
               icon={MessageSquare}
               label="Threads This Month"
-              value={threadsThisMonth}
+              value={stats.threadsThisMonth}
               iconBgColor="bg-green-100"
               iconColor="text-green-600"
             />
             <DashboardStatCard
               icon={Database}
               label="Active Spaces"
-              value={spaces?.length || 0}
+              value={stats.totalSpaces}
               iconBgColor="bg-yellow-100"
               iconColor="text-yellow-600"
             />
             <DashboardStatCard
               icon={Zap}
               label="Total Threads"
-              value={threads?.length || 0}
+              value={stats.totalThreads}
               iconBgColor="bg-purple-100"
               iconColor="text-purple-600"
             />
