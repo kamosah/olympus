@@ -104,7 +104,9 @@ async def stream_thread_response(
     db: Annotated[AsyncSession, Depends(get_session)],
     organization_id: Annotated[
         UUID | None,
-        QueryParam(description="Organization ID (required if save_to_db=true and space_id not provided)"),
+        QueryParam(
+            description="Organization ID (required if save_to_db=true and space_id not provided)"
+        ),
     ] = None,
     space_id: Annotated[
         UUID | None, QueryParam(description="Space ID to filter search results")
