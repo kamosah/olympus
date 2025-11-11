@@ -1,7 +1,7 @@
 """GraphQL query resolvers."""
 
 import logging
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID
 
 from sqlalchemy import extract, func, select
@@ -825,8 +825,8 @@ class Query:
             thread_count = await session.scalar(thread_count_stmt) or 0
 
             # Count threads created this month
-            current_year = datetime.now().year
-            current_month = datetime.now().month
+            current_year = datetime.now(UTC).year
+            current_month = datetime.now(UTC).month
 
             threads_month_stmt = select(func.count(ThreadModel.id)).where(
                 extract("year", ThreadModel.created_at) == current_year,
