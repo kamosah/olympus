@@ -45,7 +45,7 @@ export default function ThreadPage({ params }: ThreadPageProps) {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
+    <div className="flex flex-col h-[calc(100vh-4rem)] gap-6">
       {/* ThreadInterface - Shows conversation history */}
       <div className="flex-1 overflow-hidden">
         <ThreadInterface initialThread={thread} />
