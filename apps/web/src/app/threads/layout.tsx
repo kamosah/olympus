@@ -3,12 +3,23 @@
 import { EmailVerificationBanner } from '@/components/auth/EmailVerificationBanner';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppSidebar } from '@/components/layout/AppSidebar';
+import { ThreadsPanelProvider } from '@/contexts/ThreadsPanelContext';
+import type { ReactNode } from 'react';
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+interface ThreadsLayoutProps {
+  children: ReactNode;
+}
+
+/**
+ * ThreadsLayout - Layout for org-wide threads interface
+ *
+ * Features:
+ * - AppSidebar and AppHeader for navigation
+ * - Wraps with ThreadsPanelProvider for bottom panel state management
+ * - No SpaceContext needed (org-wide threads)
+ * - Uses organization from Zustand auth store
+ */
+export default function ThreadsLayout({ children }: ThreadsLayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top Navigation */}
@@ -21,7 +32,7 @@ export default function DashboardLayout({
         {/* Main Content */}
         <main className="flex-1 overflow-auto">
           <EmailVerificationBanner />
-          {children}
+          <ThreadsPanelProvider>{children}</ThreadsPanelProvider>
         </main>
       </div>
     </div>
