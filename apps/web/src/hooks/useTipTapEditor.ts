@@ -105,8 +105,9 @@ export function useTipTapEditor(
         },
       },
     },
-    // Dependencies that should trigger editor recreation
-    [placeholder]
+    // Empty dependency array - editor created once on mount
+    // Placeholder is part of extension config and doesn't need to trigger recreation
+    []
   );
 
   // Update editable state when disabled changes
