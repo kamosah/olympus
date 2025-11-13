@@ -1,7 +1,6 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { User, Bot } from 'lucide-react';
 import { format } from 'date-fns';
 import { MarkdownContent } from '../common/MarkdownContent';
 
@@ -10,11 +9,6 @@ interface ThreadMessageProps {
   content: string;
   timestamp?: Date | string;
   confidenceScore?: number;
-  className?: string;
-}
-
-interface MessageAvatarProps {
-  role: 'user' | 'assistant';
   className?: string;
 }
 
@@ -35,25 +29,6 @@ interface AIMessageProps {
   timestamp?: string;
   confidenceScore?: number;
   className?: string;
-}
-
-/**
- * MessageAvatar - Reusable avatar component for user and AI messages
- */
-function MessageAvatar({ role, className }: MessageAvatarProps) {
-  const isUser = role === 'user';
-
-  return (
-    <div
-      className={cn(
-        'shrink-0 w-8 h-8 rounded-full flex items-center justify-center',
-        isUser ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600',
-        className
-      )}
-    >
-      {isUser ? <User className="h-5 w-5" /> : <Bot className="h-5 w-5" />}
-    </div>
-  );
 }
 
 /**
@@ -92,14 +67,11 @@ function MessageHeader({
 function UserMessage({ content, timestamp, className }: UserMessageProps) {
   return (
     <div className={cn('flex justify-end px-4 py-4', className)}>
-      <div className="flex gap-3 max-w-3xl bg-gray-100 rounded-lg px-4 py-3">
-        <div className="flex-1 min-w-0">
-          <MessageHeader role="user" timestamp={timestamp} />
-          <div className="text-sm text-gray-800 whitespace-pre-wrap break-words">
-            {content}
-          </div>
+      <div className="max-w-3xl bg-gray-100 rounded-lg px-4 py-3">
+        <MessageHeader role="user" timestamp={timestamp} />
+        <div className="text-sm text-gray-800 whitespace-pre-wrap break-words">
+          {content}
         </div>
-        <MessageAvatar role="user" />
       </div>
     </div>
   );
@@ -116,16 +88,13 @@ function AIMessage({
 }: AIMessageProps) {
   return (
     <div className={cn('flex justify-start px-4 py-4', className)}>
-      <div className="flex gap-3 max-w-3xl">
-        <MessageAvatar role="assistant" />
-        <div className="flex-1 min-w-0">
-          <MessageHeader
-            role="assistant"
-            timestamp={timestamp}
-            confidenceScore={confidenceScore}
-          />
-          <MarkdownContent content={content} />
-        </div>
+      <div className="max-w-3xl">
+        <MessageHeader
+          role="assistant"
+          timestamp={timestamp}
+          confidenceScore={confidenceScore}
+        />
+        <MarkdownContent content={content} />
       </div>
     </div>
   );
@@ -137,10 +106,10 @@ function AIMessage({
  * Features:
  * - User messages: Right-aligned with light gray bubble
  * - AI messages: Left-aligned, transparent (no bubble)
- * - Avatar icons
  * - Timestamp display
  * - Confidence score for assistant messages
  * - Markdown rendering for AI messages
+ * - Clean interface without avatar icons
  *
  * @example
  * <ThreadMessage

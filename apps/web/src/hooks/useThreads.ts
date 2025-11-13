@@ -1,8 +1,5 @@
 'use client';
 
-import { useAuthStore } from '@/lib/stores/auth-store';
-import { useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '@/lib/query/client';
 import {
   useCreateThreadMutation,
   useDeleteThreadMutation,
@@ -10,14 +7,17 @@ import {
   useGetThreadsQuery,
   useUpdateThreadMutation,
 } from '@/lib/api/hooks.generated';
+import { queryKeys } from '@/lib/query/client';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Re-export generated types for convenience
 export type {
   CreateThreadInput,
+  GetThreadQuery,
+  GetThreadsQuery,
   Thread,
   ThreadStatusEnum,
-  GetThreadsQuery,
-  GetThreadQuery,
   UpdateThreadInput,
 } from '@/lib/api/generated';
 
@@ -84,6 +84,7 @@ export function useThread(id: string) {
     isLoading: query.isLoading,
     error: query.error,
     refetch: query.refetch,
+    isSuccess: query.isSuccess,
   };
 }
 

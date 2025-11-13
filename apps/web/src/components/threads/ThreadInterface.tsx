@@ -11,12 +11,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { ThreadsEmptyState } from '../threads/ThreadsEmptyState';
 import { CitationList } from './CitationList';
+import { ThreadInput } from './ThreadInput';
 import { ThreadMessage } from './ThreadMessage';
 import { ThreadResponse } from './ThreadResponse';
-import { ThreadInput } from './ThreadInput';
 
 interface ThreadInterfaceProps {
-  onQuerySubmit?: () => void;
+  onMessageSubmit?: () => void;
   onThreadCreated?: (threadId: string) => void;
   initialThread?: Thread;
   spaceId?: string;
@@ -47,7 +47,7 @@ interface ThreadInterfaceProps {
  * <ThreadInterface initialThread={threadData} />
  */
 export function ThreadInterface({
-  onQuerySubmit,
+  onMessageSubmit,
   onThreadCreated,
   initialThread,
   spaceId,
@@ -55,7 +55,7 @@ export function ThreadInterface({
   const { currentOrganization } = useAuthStore();
   const { minimize } = useThreadsPanel();
   const queryClient = useQueryClient();
-  const [currentQuery, setCurrentQuery] = useState('');
+  const [currentMessage, setCurrentMessage] = useState('');
   const [conversationHistory, setConversationHistory] = useState<
     Array<{
       role: 'user' | 'assistant';
@@ -97,16 +97,16 @@ export function ThreadInterface({
     error,
     errorCode,
     retryCount,
-    queryId,
+    threadId,
     startStreaming,
     retry,
   } = useStreamingQuery();
 
-  // Track which queryId we've added to conversation history to prevent duplicates
-  const addedQueryId = useRef<string | null>(null);
+  // Track which threadId we've added to conversation history to prevent duplicates
+  const addedThreadId = useRef<string | null>(null);
 
-  // Track which queryId we've cached to prevent duplicate cache updates
-  const cachedQueryId = useRef<string | null>(null);
+  // Track which threadId we've cached to prevent duplicate cache updates
+  const cachedThreadId = useRef<string | null>(null);
 
   // Auto-minimize ThreadsPanel when streaming starts on first message
   useEffect(() => {
@@ -122,16 +122,16 @@ export function ThreadInterface({
   useEffect(() => {
     if (
       !isStreaming &&
-      queryId &&
-      currentQuery &&
+      threadId &&
+      currentMessage &&
       response &&
-      cachedQueryId.current !== queryId
+      cachedThreadId.current !== threadId
     ) {
       // Build thread data that matches GraphQL query shape
       const threadData = {
         query: {
-          id: queryId,
-          queryText: currentQuery,
+          id: threadId,
+          queryText: currentMessage,
           result: response,
           confidenceScore: confidenceScore || null,
           sources: citations, // Include citations so they persist
@@ -141,29 +141,29 @@ export function ThreadInterface({
       };
 
       // Populate cache so individual thread page loads instantly
-      queryClient.setQueryData(queryKeys.threads.detail(queryId), threadData);
+      queryClient.setQueryData(queryKeys.threads.detail(threadId), threadData);
 
-      // Mark this queryId as cached to prevent duplicates
-      cachedQueryId.current = queryId;
+      // Mark this threadId as cached to prevent duplicates
+      cachedThreadId.current = threadId;
     }
   }, [
     isStreaming,
-    queryId,
-    currentQuery,
+    threadId,
+    currentMessage,
     response,
     confidenceScore,
     citations,
     queryClient,
   ]);
 
-  // Navigate to new thread when queryId becomes available
+  // Navigate to new thread when threadId becomes available
   useEffect(() => {
-    // If we have a queryId and no initialThread, this is a new conversation
+    // If we have a threadId and no initialThread, this is a new conversation
     // Navigate to the individual thread page
-    if (queryId && !initialThread && onThreadCreated) {
-      onThreadCreated(queryId);
+    if (threadId && !initialThread && onThreadCreated) {
+      onThreadCreated(threadId);
     }
-  }, [queryId, initialThread, onThreadCreated]);
+  }, [threadId, initialThread, onThreadCreated]);
 
   // Add assistant response to conversation when streaming completes
   useEffect(() => {
@@ -171,14 +171,14 @@ export function ThreadInterface({
     // Only add if:
     // 1. Streaming is complete (!isStreaming)
     // 2. We have a response
-    // 3. We have a queryId (streaming completed successfully)
-    // 4. We haven't already added this queryId to history
+    // 3. We have a threadId (streaming completed successfully)
+    // 4. We haven't already added this threadId to history
     // 5. The last message is from the user (we haven't added assistant response yet)
     if (
       !isStreaming &&
       response &&
-      queryId &&
-      addedQueryId.current !== queryId &&
+      threadId &&
+      addedThreadId.current !== threadId &&
       conversationHistory.length > 0 &&
       conversationHistory[conversationHistory.length - 1].role === 'user'
     ) {
@@ -192,31 +192,31 @@ export function ThreadInterface({
           confidenceScore: confidenceScore || undefined,
         },
       ]);
-      // Mark this queryId as added to prevent duplicates
-      addedQueryId.current = queryId;
+      // Mark this threadId as added to prevent duplicates
+      addedThreadId.current = threadId;
     }
   }, [
     isStreaming,
     response,
-    queryId,
+    threadId,
     conversationHistory,
     citations,
     confidenceScore,
   ]);
 
-  // Handle new query submission
-  const handleSubmitQuery = async (query: string) => {
-    setCurrentQuery(query);
+  // Handle new message submission
+  const handleSubmitMessage = async (message: string) => {
+    setCurrentMessage(message);
 
-    // Notify parent that a query was submitted
-    onQuerySubmit?.();
+    // Notify parent that a message was submitted
+    onMessageSubmit?.();
 
     // Add user message to conversation
     setConversationHistory((prev) => [
       ...prev,
       {
         role: 'user',
-        content: query,
+        content: message,
         timestamp: new Date(),
       },
     ]);
@@ -224,14 +224,14 @@ export function ThreadInterface({
     try {
       // Start streaming response
       await startStreaming({
-        query,
+        query: message,
         organizationId: currentOrganization?.id,
         spaceId,
         saveToDb: true, // Save to database for history
       });
       // Note: Assistant response will be added by useEffect when streaming completes
     } catch (err) {
-      console.error('Query streaming failed:', err);
+      console.error('Message streaming failed:', err);
     }
   };
 
@@ -254,7 +254,7 @@ export function ThreadInterface({
     isStreaming || (response && lastMessageIsFromUser && !error);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-white">
       {/* Messages Container - Constrained width matching input */}
       <ScrollArea className="flex-1 p-0">
         {/* Conversation History - Constrained width container */}
@@ -297,7 +297,7 @@ export function ThreadInterface({
       </ScrollArea>
 
       {/* Input Area - Empty state sits naturally above input */}
-      <div className="flex-shrink-0 pb-2">
+      <div className="flex-shrink-0 bg-white">
         {/* Empty State - Shows above input when no messages */}
         {conversationHistory.length === 0 && !isStreaming && (
           <div className="flex items-center justify-center py-12">
@@ -306,7 +306,7 @@ export function ThreadInterface({
         )}
 
         {/* Thread Input (Fixed at Bottom) - Same width as messages */}
-        <ThreadInput onSubmit={handleSubmitQuery} isStreaming={isStreaming} />
+        <ThreadInput onSubmit={handleSubmitMessage} isStreaming={isStreaming} />
       </div>
     </div>
   );

@@ -122,7 +122,7 @@ export function ThreadsPanel({
   return (
     <motion.div
       initial={false}
-      animate={{ height: isExpanded ? '30vh' : '60px' }}
+      animate={{ height: isExpanded ? '30vh' : '10px' }}
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
       className={`bg-white border-t border-gray-200 flex flex-col relative ${className || ''}`}
     >
