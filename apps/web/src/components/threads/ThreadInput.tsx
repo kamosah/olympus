@@ -53,7 +53,7 @@ export function ThreadInput({
 
     if (trimmedMessage && !isStreaming && !disabled) {
       onSubmit(trimmedMessage);
-      // Editor clears itself in the hook after submission
+      // Editor cleared by hook's keydown handler (useTipTapEditor.ts line 97)
     }
   };
 
