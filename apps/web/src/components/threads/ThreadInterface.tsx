@@ -58,17 +58,20 @@ export function ThreadInterface({
   const [currentMessage, setCurrentMessage] = useState('');
   const [conversationHistory, setConversationHistory] = useState<
     Array<{
+      id: string;
       role: 'user' | 'assistant';
       content: string;
       timestamp: Date;
       citations?: Citation[];
       confidenceScore?: number;
+      isFailed?: boolean;
     }>
   >(() => {
     // Initialize conversation history from initialThread if provided
     if (initialThread) {
       return [
         {
+          id: `user-${Date.now()}`,
           role: 'user',
           content: initialThread.queryText,
           timestamp: new Date(initialThread.createdAt),
@@ -76,6 +79,7 @@ export function ThreadInterface({
         ...(initialThread.result
           ? [
               {
+                id: `assistant-${Date.now()}`,
                 role: 'assistant' as const,
                 content: initialThread.result,
                 timestamp: new Date(initialThread.updatedAt),
@@ -107,6 +111,9 @@ export function ThreadInterface({
 
   // Track which threadId we've cached to prevent duplicate cache updates
   const cachedThreadId = useRef<string | null>(null);
+
+  // Track the ID of the last user message to mark as failed on error
+  const lastUserMessageId = useRef<string | null>(null);
 
   // Auto-minimize ThreadsPanel when streaming starts on first message
   useEffect(() => {
@@ -165,6 +172,32 @@ export function ThreadInterface({
     }
   }, [threadId, initialThread, onThreadCreated]);
 
+  // Handle error state - mark the last user message as failed
+  useEffect(() => {
+    // When an error occurs, mark the last user message as failed
+    // Only mark as failed if:
+    // 1. Streaming is complete (!isStreaming)
+    // 2. We have an error
+    // 3. We have a lastUserMessageId to mark as failed
+    // 4. The last message is from the user (no assistant response yet)
+    if (
+      !isStreaming &&
+      error &&
+      lastUserMessageId.current &&
+      conversationHistory.length > 0 &&
+      conversationHistory[conversationHistory.length - 1].role === 'user'
+    ) {
+      // Mark the last user message as failed
+      setConversationHistory((prev) =>
+        prev.map((msg) =>
+          msg.id === lastUserMessageId.current
+            ? { ...msg, isFailed: true }
+            : msg
+        )
+      );
+    }
+  }, [isStreaming, error, conversationHistory]);
+
   // Add assistant response to conversation when streaming completes
   useEffect(() => {
     // When streaming completes and we have a response, add it to conversation history
@@ -185,6 +218,7 @@ export function ThreadInterface({
       setConversationHistory((prev) => [
         ...prev,
         {
+          id: `assistant-${Date.now()}`,
           role: 'assistant',
           content: response,
           timestamp: new Date(),
@@ -194,6 +228,8 @@ export function ThreadInterface({
       ]);
       // Mark this threadId as added to prevent duplicates
       addedThreadId.current = threadId;
+      // Clear the failed state tracking since we succeeded
+      lastUserMessageId.current = null;
     }
   }, [
     isStreaming,
@@ -211,10 +247,15 @@ export function ThreadInterface({
     // Notify parent that a message was submitted
     onMessageSubmit?.();
 
+    // Generate unique ID for this user message
+    const messageId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    lastUserMessageId.current = messageId;
+
     // Add user message to conversation
     setConversationHistory((prev) => [
       ...prev,
       {
+        id: messageId,
         role: 'user',
         content: message,
         timestamp: new Date(),
@@ -232,16 +273,29 @@ export function ThreadInterface({
       // Note: Assistant response will be added by useEffect when streaming completes
     } catch (err) {
       console.error('Message streaming failed:', err);
+      // Error handling happens in useEffect based on error state from useStreamingQuery
     }
   };
 
   // Handle retry on error - use the retry method from useStreamingQuery
   const handleRetry = async () => {
+    // Clear failed state on the last user message before retrying
+    if (lastUserMessageId.current) {
+      setConversationHistory((prev) =>
+        prev.map((msg) =>
+          msg.id === lastUserMessageId.current
+            ? { ...msg, isFailed: false }
+            : msg
+        )
+      );
+    }
+
     try {
       await retry();
       // Note: Assistant response will be added by useEffect when streaming completes
     } catch (err) {
       console.error('Retry failed:', err);
+      // Error handling happens in useEffect based on error state from useStreamingQuery
     }
   };
 
@@ -260,13 +314,14 @@ export function ThreadInterface({
         {/* Conversation History - Constrained width container */}
         {conversationHistory.length > 0 && (
           <div className="max-w-3xl mx-auto">
-            {conversationHistory.map((message, index) => (
-              <div key={index}>
+            {conversationHistory.map((message) => (
+              <div key={message.id}>
                 <ThreadMessage
                   role={message.role}
                   content={message.content}
                   timestamp={message.timestamp}
                   confidenceScore={message.confidenceScore}
+                  isFailed={message.isFailed}
                 />
                 {/* Show citations for assistant messages */}
                 {message.role === 'assistant' &&

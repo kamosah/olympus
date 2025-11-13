@@ -66,7 +66,6 @@ export interface TipTapEditorProps {
  * **Keyboard shortcuts:**
  * - `Enter` - Submit message
  * - `Shift+Enter` - New line
- * - `Cmd/Ctrl+Enter` - Force submit
  *
  * @example
  * ```tsx

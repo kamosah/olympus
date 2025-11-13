@@ -46,11 +46,9 @@ export function getEditorExtensions(
     // Hard break for Shift+Enter
     HardBreak,
 
-    // Placeholder text
+    // Placeholder text (styling handled in globals.css via .is-editor-empty)
     Placeholder.configure({
       placeholder,
-      emptyEditorClass:
-        'before:content-[attr(data-placeholder)] before:text-gray-400 before:float-left before:h-0 before:pointer-events-none',
     }),
 
     // Phase 2: Add mention extensions here
@@ -71,10 +69,8 @@ export function getEditorExtensions(
  * Defines custom keyboard shortcuts for the editor:
  * - Enter: Submit (default behavior, overridden in editor config)
  * - Shift+Enter: New line (hard break)
- * - Cmd/Ctrl+Enter: Force submit
  */
 export const editorKeyboardShortcuts = {
   Enter: 'submit', // Will be handled by onSubmit callback
   'Shift-Enter': 'hardBreak', // Insert line break
-  'Mod-Enter': 'submit', // Force submit
 };
