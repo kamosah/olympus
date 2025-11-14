@@ -171,8 +171,9 @@
   }
 
   .tiptap-editor .ProseMirror p.is-editor-empty:first-child::before {
-    @apply text-gray-400 float-left h-0 pointer-events-none;
+    @apply text-gray-400 h-0 pointer-events-none;
     content: attr(data-placeholder);
+    display: block;
   }
 
   /* Phase 2: Mention styles (currently commented in TipTapEditor.tsx) */

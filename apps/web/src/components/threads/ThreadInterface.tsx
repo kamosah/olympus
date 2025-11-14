@@ -27,14 +27,15 @@ interface ThreadInterfaceProps {
  *
  * Features:
  * - Chat-style conversation display (Hex-inspired design)
- * - Real-time streaming responses
+ * - Real-time streaming responses with immediate navigation
  * - Citation display with source links
  * - Thread input with keyboard shortcuts
  * - Clean, constrained-width interface
  * - Supports both org-wide and space-scoped threads
  * - Uses Zustand auth store for organization context
  * - Can load initial thread data for existing conversations
- * - Navigates to new thread page after first message
+ * - Navigates to thread page IMMEDIATELY when thread is created (before streaming completes)
+ * - Optimistic cache updates during streaming for seamless UX
  *
  * @example
  * // New org-wide conversation (uses currentOrganization from Zustand)
@@ -71,7 +72,7 @@ export function ThreadInterface({
     if (initialThread) {
       return [
         {
-          id: `user-${Date.now()}`,
+          id: `user-${crypto.randomUUID()}`,
           role: 'user',
           content: initialThread.queryText,
           timestamp: new Date(initialThread.createdAt),
@@ -79,7 +80,7 @@ export function ThreadInterface({
         ...(initialThread.result
           ? [
               {
-                id: `assistant-${Date.now()}`,
+                id: `assistant-${crypto.randomUUID()}`,
                 role: 'assistant' as const,
                 content: initialThread.result,
                 timestamp: new Date(initialThread.updatedAt),
@@ -109,9 +110,6 @@ export function ThreadInterface({
   // Track which threadId we've added to conversation history to prevent duplicates
   const addedThreadId = useRef<string | null>(null);
 
-  // Track which threadId we've cached to prevent duplicate cache updates
-  const cachedThreadId = useRef<string | null>(null);
-
   // Track the ID of the last user message to mark as failed on error
   const lastUserMessageId = useRef<string | null>(null);
 
@@ -124,37 +122,40 @@ export function ThreadInterface({
     }
   }, [isStreaming, conversationHistory.length, minimize]);
 
-  // Populate cache with thread data when streaming completes
-  // This prevents loading state when navigating to individual thread page
+  // Navigate IMMEDIATELY when threadId becomes available from "start" event
+  // This allows navigation while streaming is still in progress
   useEffect(() => {
-    if (
-      !isStreaming &&
-      threadId &&
-      currentMessage &&
-      response &&
-      cachedThreadId.current !== threadId
-    ) {
+    // If we have a threadId and no initialThread, this is a new conversation
+    // Navigate to the individual thread page immediately (before streaming completes)
+    if (threadId && !initialThread && onThreadCreated) {
+      onThreadCreated(threadId);
+    }
+  }, [threadId, initialThread, onThreadCreated]);
+
+  // Populate cache OPTIMISTICALLY as streaming progresses
+  // This prevents loading state when navigating to individual thread page
+  // Updates happen during streaming AND after completion
+  useEffect(() => {
+    if (threadId && currentMessage) {
       // Build thread data that matches GraphQL query shape
+      // Update with current state (even if streaming is still in progress)
       const threadData = {
         query: {
           id: threadId,
           queryText: currentMessage,
-          result: response,
+          result: response || '', // Empty string if streaming hasn't started yet
           confidenceScore: confidenceScore || null,
-          sources: citations, // Include citations so they persist
+          sources: citations, // Include citations as they arrive
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
       };
 
       // Populate cache so individual thread page loads instantly
+      // This updates during streaming (optimistic) and after completion (final)
       queryClient.setQueryData(queryKeys.threads.detail(threadId), threadData);
-
-      // Mark this threadId as cached to prevent duplicates
-      cachedThreadId.current = threadId;
     }
   }, [
-    isStreaming,
     threadId,
     currentMessage,
     response,
@@ -163,15 +164,6 @@ export function ThreadInterface({
     queryClient,
   ]);
 
-  // Navigate to new thread when threadId becomes available
-  useEffect(() => {
-    // If we have a threadId and no initialThread, this is a new conversation
-    // Navigate to the individual thread page
-    if (threadId && !initialThread && onThreadCreated) {
-      onThreadCreated(threadId);
-    }
-  }, [threadId, initialThread, onThreadCreated]);
-
   // Handle error state - mark the last user message as failed
   useEffect(() => {
     // When an error occurs, mark the last user message as failed
@@ -179,24 +171,19 @@ export function ThreadInterface({
     // 1. Streaming is complete (!isStreaming)
     // 2. We have an error
     // 3. We have a lastUserMessageId to mark as failed
-    // 4. The last message is from the user (no assistant response yet)
-    if (
-      !isStreaming &&
-      error &&
-      lastUserMessageId.current &&
-      conversationHistory.length > 0 &&
-      conversationHistory[conversationHistory.length - 1].role === 'user'
-    ) {
-      // Mark the last user message as failed
+    // Note: We don't include conversationHistory in deps to avoid unnecessary re-runs
+    // The lastUserMessageId.current ref ensures we target the correct message
+    if (!isStreaming && error && lastUserMessageId.current) {
+      // Mark the last user message as failed using the tracked message ID
       setConversationHistory((prev) =>
         prev.map((msg) =>
-          msg.id === lastUserMessageId.current
+          msg.id === lastUserMessageId.current && !msg.isFailed
             ? { ...msg, isFailed: true }
             : msg
         )
       );
     }
-  }, [isStreaming, error, conversationHistory]);
+  }, [isStreaming, error]);
 
   // Add assistant response to conversation when streaming completes
   useEffect(() => {
@@ -247,8 +234,9 @@ export function ThreadInterface({
     // Notify parent that a message was submitted
     onMessageSubmit?.();
 
-    // Generate unique ID for this user message
-    const messageId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Generate unique ID for this user message using crypto.randomUUID()
+    // This ensures truly unique IDs even with rapid submissions
+    const messageId = `user-${crypto.randomUUID()}`;
     lastUserMessageId.current = messageId;
 
     // Add user message to conversation
@@ -279,16 +267,21 @@ export function ThreadInterface({
 
   // Handle retry on error - use the retry method from useStreamingQuery
   const handleRetry = async () => {
+    // Store the message ID before clearing it (needed for clearing failed state)
+    const messageId = lastUserMessageId.current;
+
     // Clear failed state on the last user message before retrying
-    if (lastUserMessageId.current) {
+    if (messageId) {
       setConversationHistory((prev) =>
         prev.map((msg) =>
-          msg.id === lastUserMessageId.current
-            ? { ...msg, isFailed: false }
-            : msg
+          msg.id === messageId ? { ...msg, isFailed: false } : msg
         )
       );
     }
+
+    // Reset the ref so subsequent failures can be properly tracked
+    // This prevents the race condition where retry fails but the message isn't marked
+    lastUserMessageId.current = messageId;
 
     try {
       await retry();

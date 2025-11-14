@@ -50,6 +50,12 @@ export function useThreads(options?: {
     },
     {
       enabled: !!accessToken,
+      queryKey: queryKeys.threads.list({
+        spaceId: options?.spaceId,
+        organizationId: options?.organizationId,
+        limit: options?.limit,
+        offset: options?.offset,
+      }),
     }
   );
 
@@ -67,7 +73,14 @@ export function useThreads(options?: {
  * Auth token is automatically injected via GraphQL client middleware.
  *
  * @example
- * const { thread, isLoading } = useThread(threadId);
+ * const { thread, isLoading, isSuccess } = useThread(threadId);
+ *
+ * @returns Object containing:
+ * - `thread`: The thread data (undefined while loading or on error)
+ * - `isLoading`: True while the query is in progress
+ * - `error`: Error object if the query failed
+ * - `refetch`: Function to manually refetch the thread
+ * - `isSuccess`: True when the query has successfully completed
  */
 export function useThread(id: string) {
   const { accessToken } = useAuthStore();
@@ -76,6 +89,7 @@ export function useThread(id: string) {
     { id },
     {
       enabled: !!accessToken && !!id,
+      queryKey: queryKeys.threads.detail(id),
     }
   );
 
@@ -151,11 +165,6 @@ export function useCreateThread() {
     onSuccess: (data) => {
       if (data?.createThread) {
         const thread = data.createThread;
-
-        // Invalidate list queries to refetch with new item
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.threads.lists(),
-        });
 
         // Set the new thread in cache
         queryClient.setQueryData(queryKeys.threads.detail(thread.id), {

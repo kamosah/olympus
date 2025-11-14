@@ -149,6 +149,14 @@ export function useStreamingQuery() {
               const data: SSEEvent = JSON.parse(event.data);
 
               switch (data.type) {
+                case 'start':
+                  // Thread created - set threadId immediately for early navigation
+                  setState((prev) => ({
+                    ...prev,
+                    threadId: data.thread_id,
+                  }));
+                  break;
+
                 case 'token':
                   // Append token to response
                   setState((prev) => ({
@@ -180,7 +188,7 @@ export function useStreamingQuery() {
                     ...prev,
                     isStreaming: false,
                     confidenceScore: data.confidence_score,
-                    threadId: data.thread_id || null,
+                    threadId: data.thread_id || prev.threadId,
                     retryCount: 0, // Reset retry count on success
                   }));
 

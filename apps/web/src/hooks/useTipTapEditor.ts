@@ -72,9 +72,18 @@ export function useTipTapEditor(
       content,
       autofocus,
       editable: !disabled,
-      immediatelyRender: false, // Required for Next.js SSR to avoid hydration mismatches
+      /**
+       * Disable immediate rendering to prevent hydration mismatches in Next.js SSR.
+       * Without this, the editor tries to render during SSR but the content structure
+       * may differ between server and client, causing React hydration errors.
+       * This ensures the editor only renders client-side after hydration completes.
+       */
+      immediatelyRender: false,
 
       // Handle content updates
+      // Note: This callback is optional and triggers on ALL content changes,
+      // including programmatic clearing. For state management, prefer using
+      // useEditorIsEmpty/useEditorText hooks which sync with editor state directly.
       onUpdate: ({ editor }) => {
         const text = editor.getText();
         onUpdate?.(text);
@@ -94,6 +103,8 @@ export function useTipTapEditor(
             if (text) {
               onSubmit?.(text);
               // Clear content using the live view
+              // This triggers onUpdate('') but that's fine - consumers should use
+              // useEditorIsEmpty hook for state instead of relying on callbacks
               view.dispatch(state.tr.delete(0, state.doc.content.size));
             }
             return true;
@@ -107,7 +118,7 @@ export function useTipTapEditor(
     },
     // Empty dependency array - editor created once on mount
     // Placeholder is part of extension config and doesn't need to trigger recreation
-    []
+    [onUpdate, onSubmit]
   );
 
   // Update editable state when disabled changes

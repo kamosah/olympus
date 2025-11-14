@@ -2,6 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { AlertTriangle } from 'lucide-react';
 import { MarkdownContent } from '../common/MarkdownContent';
 
 interface ThreadMessageProps {
@@ -66,25 +67,32 @@ function MessageHeader({
 /**
  * UserMessage - Right-aligned message bubble for user messages
  */
-function UserMessage({ content, timestamp, isFailed, className }: UserMessageProps) {
+function UserMessage({
+  content,
+  timestamp,
+  isFailed,
+  className,
+}: UserMessageProps) {
   return (
     <div className={cn('flex justify-end px-4 py-4', className)}>
-      <div className={cn(
-        'max-w-3xl rounded-lg px-4 py-3',
-        isFailed 
-          ? 'bg-red-50 border border-red-200' 
-          : 'bg-gray-100'
-      )}>
+      <div
+        className={cn(
+          'max-w-3xl rounded-lg px-4 py-3',
+          isFailed ? 'bg-red-50 border border-red-200' : 'bg-gray-100'
+        )}
+      >
         <MessageHeader role="user" timestamp={timestamp} />
-        <div className={cn(
-          'text-sm whitespace-pre-wrap break-words',
-          isFailed ? 'text-red-900' : 'text-gray-800'
-        )}>
+        <div
+          className={cn(
+            'text-sm whitespace-pre-wrap break-words',
+            isFailed ? 'text-red-900' : 'text-gray-800'
+          )}
+        >
           {content}
         </div>
         {isFailed && (
           <div className="text-xs text-red-600 mt-2 flex items-center gap-1">
-            <span>⚠</span>
+            <AlertTriangle className="h-4 w-4" />
             <span>Message failed to send</span>
           </div>
         )}

@@ -18,6 +18,11 @@ export interface Citation {
   confidence_level?: 'high' | 'medium' | 'low';
 }
 
+export type SSEStartEvent = {
+  type: 'start';
+  thread_id: string;
+};
+
 export type SSETokenEvent = {
   type: 'token';
   content: string;
@@ -52,6 +57,7 @@ export type SSEErrorEvent = {
 };
 
 export type SSEEvent =
+  | SSEStartEvent
   | SSETokenEvent
   | SSEReplaceEvent
   | SSECitationsEvent

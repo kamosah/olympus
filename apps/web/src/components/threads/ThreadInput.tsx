@@ -1,10 +1,11 @@
 'use client';
 
 import { TipTapEditor } from '@/components/editor/TipTapEditor';
+import { useEditorIsEmpty } from '@/hooks/useEditorState';
 import { Button } from '@olympus/ui';
 import type { Editor } from '@tiptap/react';
 import { Loader2, Send } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
 interface ThreadInputProps {
   onSubmit: (message: string) => void;
@@ -24,7 +25,7 @@ interface ThreadInputProps {
  * - Send button with loading state
  * - Responsive width with padding on mobile (px-4) and tablet (sm:px-6)
  * - Constrained max-width (max-w-3xl) matching message layout on desktop
- * - TipTap-only state management (no React Hook Form)
+ * - Uses useSyncExternalStore to read editor.isEmpty directly (no separate state)
  *
  * @example
  * <ThreadInput
@@ -40,25 +41,29 @@ export function ThreadInput({
   className,
 }: ThreadInputProps) {
   const [editor, setEditor] = useState<Editor | null>(null);
-  const [hasContent, setHasContent] = useState(false);
 
-  // Handle editor content changes
-  const handleEditorChange = (content: string) => {
-    setHasContent(content.trim().length > 0);
-  };
+  // Subscribe to editor state using useSyncExternalStore
+  // This reads editor.isEmpty directly and re-renders when it changes
+  const isEmpty = useEditorIsEmpty(editor);
 
-  // Handle editor submit (triggered by Enter key in TipTap)
-  const handleEditorSubmit = (content: string) => {
-    const trimmedMessage = content.trim();
+  // Memoize callbacks to prevent editor recreation on every render
+  // This fixes the infinite loop issue
+  const handleEditorSubmit = useCallback(
+    (content: string) => {
+      const trimmedMessage = content.trim();
 
-    if (trimmedMessage && !isStreaming && !disabled) {
-      onSubmit(trimmedMessage);
-      // Editor cleared by hook's keydown handler (useTipTapEditor.ts line 97)
-    }
-  };
+      if (trimmedMessage && !isStreaming && !disabled) {
+        onSubmit(trimmedMessage);
+        // Note: Editor is cleared by hook's Enter keydown handler (useTipTapEditor.ts:102)
+        // The send button below uses a different clearing mechanism (editor.chain().clearContent())
+        // useEditorIsEmpty will automatically re-render when editor clears via either method
+      }
+    },
+    [onSubmit, isStreaming, disabled]
+  );
 
   // Handle send button click
-  const handleSendClick = () => {
+  const handleSendClick = useCallback(() => {
     if (!editor) return;
 
     const content = editor.getText().trim();
@@ -67,11 +72,12 @@ export function ThreadInput({
       onSubmit(content);
       // Clear editor immediately after submission using chain API
       editor.chain().clearContent().run();
+      // useEditorIsEmpty will automatically re-render when editor clears
     }
-  };
+  }, [editor, onSubmit, isStreaming, disabled]);
 
   // Only disable button during streaming, keep input enabled
-  const canSubmit = hasContent && !isStreaming && !disabled;
+  const canSubmit = !isEmpty && !isStreaming && !disabled;
 
   return (
     <div className={`${className || ''}`}>
@@ -81,7 +87,6 @@ export function ThreadInput({
           <TipTapEditor
             placeholder={placeholder}
             onSubmit={handleEditorSubmit}
-            onChange={handleEditorChange}
             onEditorReady={setEditor}
             disabled={disabled}
             autofocus={true}
