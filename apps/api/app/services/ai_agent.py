@@ -23,7 +23,7 @@ from app.agents.thread_agent import (
     retrieve_context,
 )
 from app.models.message import Message, MessageRole
-from app.models.space import Space
+from app.models.space import Space, SpaceMember
 from app.models.thread import Thread
 from app.services.citation_service import get_citation_service
 
@@ -297,13 +297,40 @@ class AIAgentService:
         conversation_history: list[dict[str, str]] = []
 
         if thread_id and db:
-            # CONTINUATION: Load existing thread and messages
-            stmt = select(Thread).options(joinedload(Thread.messages)).where(Thread.id == thread_id)
+            # CONTINUATION: Load existing thread and verify user has access
+            # Use same authorization logic as GraphQL thread query (query.py:500-534)
+            if not user_id:
+                error_msg = "user_id is required when continuing a thread"
+                raise ValueError(error_msg)
+
+            # Load thread with space access checks
+            stmt = (
+                select(Thread)
+                .options(joinedload(Thread.messages))
+                .outerjoin(Space, Space.id == Thread.space_id)
+                .outerjoin(SpaceMember, SpaceMember.space_id == Space.id)
+                .where(
+                    (Thread.id == thread_id)
+                    & (
+                        # Access via space membership
+                        (
+                            (Thread.space_id.isnot(None))
+                            & ((Space.owner_id == user_id) | (SpaceMember.user_id == user_id))
+                        )
+                        # OR thread creator for org-wide threads
+                        | ((Thread.space_id.is_(None)) & (Thread.created_by == user_id))
+                    )
+                )
+                .distinct()
+            )
             result = await db.execute(stmt)
             thread_record = result.scalar_one_or_none()
 
             if not thread_record:
-                error_msg = f"Thread not found: {thread_id}"
+                error_msg = (
+                    f"Thread not found or access denied: {thread_id}. "
+                    "You must be the thread creator, space owner, or space member to continue this thread."
+                )
                 raise ValueError(error_msg)
 
             saved_thread_id = str(thread_record.id)
@@ -388,7 +415,7 @@ class AIAgentService:
                 "thread_id": saved_thread_id,
             }
 
-        # Step 2: Initialize state
+        # Step 2: Initialize state with conversation history for multi-turn support
         state: AgentState = {
             "query": query,
             "context": context or [],
@@ -397,6 +424,7 @@ class AIAgentService:
             "db": db,
             "space_id": space_id,
             "search_results": None,
+            "conversation_history": conversation_history,
         }
 
         # Step 3: Retrieve context (if not provided)
