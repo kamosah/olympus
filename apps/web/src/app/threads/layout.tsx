@@ -3,6 +3,7 @@
 import { EmailVerificationBanner } from '@/components/auth/EmailVerificationBanner';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppSidebar } from '@/components/layout/AppSidebar';
+import { OrganizationInitializer } from '@/components/layout/OrganizationInitializer';
 import { ThreadsPanelProvider } from '@/contexts/ThreadsPanelContext';
 import type { ReactNode } from 'react';
 
@@ -22,6 +23,9 @@ interface ThreadsLayoutProps {
 export default function ThreadsLayout({ children }: ThreadsLayoutProps) {
   return (
     <div className="h-screen flex flex-col bg-white">
+      {/* Initialize organization on mount (auto-select first if none persisted) */}
+      <OrganizationInitializer />
+
       {/* Top Navigation */}
       <AppHeader />
 

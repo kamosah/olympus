@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useOrganizations, type Organization } from '@/hooks/useOrganizations';
 import {
@@ -48,35 +48,6 @@ export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
   const { organizations = [], isLoading } = useOrganizations();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-
-  // Auto-select first organization if none is selected
-  // This ensures currentOrganization is always populated for org-scoped features like threads
-  // Note: Zustand persist middleware will restore currentOrganization from localStorage first
-  useEffect(() => {
-    // Wait for organizations to load
-    if (isLoading || organizations.length === 0) {
-      return;
-    }
-
-    // If currentOrganization exists (from localStorage or previous selection), keep it
-    if (currentOrganization) {
-      console.log(
-        'Using persisted organization:',
-        currentOrganization.name,
-        currentOrganization.id
-      );
-      return;
-    }
-
-    // No organization selected - auto-select first one
-    const firstOrg = organizations[0];
-    console.log(
-      'No organization in localStorage - auto-selecting first:',
-      firstOrg.name,
-      firstOrg.id
-    );
-    setCurrentOrganization(mapOrganizationToStoreFormat(firstOrg));
-  }, [isLoading, organizations, currentOrganization, setCurrentOrganization]);
 
   const handleSelectOrganization = (orgId: string) => {
     // For small arrays (typical: 1-5 orgs), .find() is more efficient than Map lookup

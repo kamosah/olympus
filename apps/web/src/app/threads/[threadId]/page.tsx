@@ -37,8 +37,9 @@ export default function ThreadPage() {
     );
   }
 
-  // Handle error state
-  if (error) {
+  // Handle error state - but only if there's no active streaming session
+  // If we have an active stream, show the ThreadInterface instead (thread is being created)
+  if (error && !hasActiveStream) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
         <div className="text-center">
@@ -52,7 +53,9 @@ export default function ThreadPage() {
   }
 
   // Handle not found state (query succeeded but no thread)
-  if (isSuccess && !thread) {
+  // BUT: If we have an active streaming session, this is expected (thread being created)
+  // Don't show error - let ThreadInterface handle it
+  if (isSuccess && !thread && !hasActiveStream) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
         <div className="text-center">
