@@ -51,16 +51,31 @@ export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
 
   // Auto-select first organization if none is selected
   // This ensures currentOrganization is always populated for org-scoped features like threads
+  // Note: Zustand persist middleware will restore currentOrganization from localStorage first
   useEffect(() => {
-    if (!isLoading && organizations.length > 0 && !currentOrganization) {
-      const firstOrg = organizations[0];
-      console.log(
-        'Auto-selecting first organization:',
-        firstOrg.name,
-        firstOrg.id
-      );
-      setCurrentOrganization(mapOrganizationToStoreFormat(firstOrg));
+    // Wait for organizations to load
+    if (isLoading || organizations.length === 0) {
+      return;
     }
+
+    // If currentOrganization exists (from localStorage or previous selection), keep it
+    if (currentOrganization) {
+      console.log(
+        'Using persisted organization:',
+        currentOrganization.name,
+        currentOrganization.id
+      );
+      return;
+    }
+
+    // No organization selected - auto-select first one
+    const firstOrg = organizations[0];
+    console.log(
+      'No organization in localStorage - auto-selecting first:',
+      firstOrg.name,
+      firstOrg.id
+    );
+    setCurrentOrganization(mapOrganizationToStoreFormat(firstOrg));
   }, [isLoading, organizations, currentOrganization, setCurrentOrganization]);
 
   const handleSelectOrganization = (orgId: string) => {
