@@ -63,8 +63,8 @@ class Message(Base):
         "metadata",
         JSONB,
         nullable=False,
-        default=lambda: {},
-        server_default="{}",  # noqa: PIE807
+        default=lambda: {},  # noqa: PIE807
+        server_default="{}",
     )
 
     # Relationships
