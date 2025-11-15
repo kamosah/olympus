@@ -319,11 +319,21 @@ export function ThreadInterface({
       },
     ]);
 
+    // Validate that we have either organizationId or spaceId when saving to DB
+    const orgId = currentOrganization?.id;
+    if (!orgId && !spaceId) {
+      console.error('Missing organizationId and spaceId:', {
+        currentOrganization,
+        spaceId,
+      });
+      // Still attempt the request - let backend return proper error
+    }
+
     try {
       // Start streaming response
       await startStreaming({
         query: message,
-        organizationId: currentOrganization?.id,
+        organizationId: orgId,
         spaceId,
         saveToDb: true, // Save to database for history
       });

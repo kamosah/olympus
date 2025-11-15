@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useOrganizations, type Organization } from '@/hooks/useOrganizations';
 import {
@@ -48,6 +48,20 @@ export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
   const { organizations = [], isLoading } = useOrganizations();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+
+  // Auto-select first organization if none is selected
+  // This ensures currentOrganization is always populated for org-scoped features like threads
+  useEffect(() => {
+    if (!isLoading && organizations.length > 0 && !currentOrganization) {
+      const firstOrg = organizations[0];
+      console.log(
+        'Auto-selecting first organization:',
+        firstOrg.name,
+        firstOrg.id
+      );
+      setCurrentOrganization(mapOrganizationToStoreFormat(firstOrg));
+    }
+  }, [isLoading, organizations, currentOrganization, setCurrentOrganization]);
 
   const handleSelectOrganization = (orgId: string) => {
     // For small arrays (typical: 1-5 orgs), .find() is more efficient than Map lookup
