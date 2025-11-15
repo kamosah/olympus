@@ -70,7 +70,8 @@ export function ThreadInterface({
     }>
   >(() => {
     // Initialize conversation history from initialThread if provided
-    if (initialThread) {
+    // Only if it has complete data (queryText and timestamps)
+    if (initialThread?.queryText && initialThread?.createdAt) {
       return [
         {
           id: `user-${crypto.randomUUID()}`,
