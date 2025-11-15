@@ -112,7 +112,10 @@ class Thread(Base):
     )
 
     messages: Mapped[list["Message"]] = relationship(
-        "Message", back_populates="thread", cascade="all, delete-orphan", order_by="Message.created_at"
+        "Message",
+        back_populates="thread",
+        cascade="all, delete-orphan",
+        order_by="Message.created_at",
     )
 
     def __repr__(self) -> str:

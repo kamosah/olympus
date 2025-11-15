@@ -14,12 +14,11 @@ Revises: 3a65059eb513
 Create Date: 2025-11-15 16:08:09.971988
 
 """
-from typing import Sequence, Union
 import json
+from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
@@ -71,8 +70,8 @@ def upgrade() -> None:
         if result:
             # Build metadata for assistant message
             metadata = {}
-            if sources:
-                metadata["citations"] = sources.get("citations", []) if isinstance(sources, dict) else []
+            if sources and isinstance(sources, dict):
+                metadata["citations"] = sources.get("citations", [])
             if confidence_score is not None:
                 metadata["confidence_score"] = float(confidence_score)
 

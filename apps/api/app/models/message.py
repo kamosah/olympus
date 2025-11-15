@@ -58,12 +58,19 @@ class Message(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
 
     # Message metadata for citations, confidence, model info (mapped to 'metadata' column)
-    message_metadata: Mapped[dict] = mapped_column("metadata", JSONB, nullable=False, default=dict, server_default="{}")
+    # Using lambda to avoid shared mutable default (Copilot suggestion)
+    message_metadata: Mapped[dict] = mapped_column(
+        "metadata",
+        JSONB,
+        nullable=False,
+        default=lambda: {},
+        server_default="{}",  # noqa: PIE807
+    )
 
     # Relationships
     thread: Mapped["Thread"] = relationship("Thread", back_populates="messages")
 
     def __repr__(self) -> str:
         """String representation of the message."""
-        content_preview = self.content[:50] if len(self.content) > 50 else self.content
-        return f"<Message(id={self.id}, message_role={self.message_role.value}, content={content_preview}...)>"
+        content_preview = self.content[:50] + "..." if len(self.content) > 50 else self.content
+        return f"<Message(id={self.id}, message_role={self.message_role.value}, content={content_preview})>"
