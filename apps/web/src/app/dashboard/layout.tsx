@@ -3,6 +3,7 @@
 import { EmailVerificationBanner } from '@/components/auth/EmailVerificationBanner';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppSidebar } from '@/components/layout/AppSidebar';
+import { OrganizationInitializer } from '@/components/layout/OrganizationInitializer';
 
 /**
  * Dashboard layout - provides AppHeader and AppSidebar for all dashboard pages.
@@ -15,6 +16,9 @@ export default function DashboardLayout({
 }) {
   return (
     <div className="h-screen flex flex-col bg-gray-50">
+      {/* Initialize organization on mount (auto-select first if none persisted) */}
+      <OrganizationInitializer />
+
       {/* Top Navigation */}
       <AppHeader />
 

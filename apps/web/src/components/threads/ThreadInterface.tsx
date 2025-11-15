@@ -5,7 +5,7 @@ import { useStreamingQuery } from '@/hooks/useStreamingQuery';
 import type { Thread } from '@/hooks/useThreads';
 import type { Citation } from '@/lib/api/queries-client';
 import { queryKeys } from '@/lib/query/client';
-import { useAuthStore } from '@/lib/stores';
+import { useAuthStore, useStreamingStore } from '@/lib/stores';
 import { ScrollArea } from '@olympus/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
@@ -54,6 +54,7 @@ export function ThreadInterface({
   spaceId,
 }: ThreadInterfaceProps) {
   const { currentOrganization } = useAuthStore();
+  const streamingStore = useStreamingStore();
   const { minimize } = useThreadsPanel();
   const queryClient = useQueryClient();
   const [currentMessage, setCurrentMessage] = useState('');
@@ -69,7 +70,8 @@ export function ThreadInterface({
     }>
   >(() => {
     // Initialize conversation history from initialThread if provided
-    if (initialThread) {
+    // Only if it has complete data (queryText and timestamps)
+    if (initialThread?.queryText && initialThread?.createdAt) {
       return [
         {
           id: `user-${crypto.randomUUID()}`,
@@ -112,6 +114,74 @@ export function ThreadInterface({
 
   // Track the ID of the last user message to mark as failed on error
   const lastUserMessageId = useRef<string | null>(null);
+
+  // Track if we're showing a recovered streaming session (from store)
+  const [recoveredSession, setRecoveredSession] = useState<{
+    response: string;
+    citations: Citation[];
+    confidenceScore: number | null;
+    isStreaming: boolean;
+    error: string | null;
+    errorCode?: string;
+  } | null>(null);
+
+  // Check for active streaming session on mount (for navigation recovery)
+  // AND subscribe to updates for real-time token streaming
+  useEffect(() => {
+    if (!initialThread?.id) return;
+
+    const session = streamingStore.getSession(initialThread.id);
+    if (session && session.isStreaming) {
+      // Found an active streaming session - recover it
+      setRecoveredSession({
+        response: session.response,
+        citations: session.citations,
+        confidenceScore: session.confidenceScore,
+        isStreaming: session.isStreaming,
+        error: session.error,
+        errorCode: session.errorCode,
+      });
+      setCurrentMessage(session.query);
+    } else if (session && !session.isStreaming) {
+      // Streaming completed - clear the session
+      streamingStore.clearSession(initialThread.id);
+    }
+
+    // Subscribe to streaming store updates for this thread
+    // This enables real-time updates when tokens arrive after navigation
+    const unsubscribe = useStreamingStore.subscribe((state) => {
+      const updatedSession = state.sessions[initialThread.id];
+      if (updatedSession) {
+        setRecoveredSession({
+          response: updatedSession.response,
+          citations: updatedSession.citations,
+          confidenceScore: updatedSession.confidenceScore,
+          isStreaming: updatedSession.isStreaming,
+          error: updatedSession.error,
+          errorCode: updatedSession.errorCode,
+        });
+
+        // Clear recovered session when streaming completes
+        if (!updatedSession.isStreaming) {
+          setTimeout(() => {
+            setRecoveredSession(null);
+            streamingStore.clearSession(initialThread.id);
+          }, 100); // Small delay to ensure final state is rendered
+        }
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [initialThread?.id, streamingStore]);
+
+  // Clear recovered session when real streaming starts
+  useEffect(() => {
+    if (isStreaming && recoveredSession) {
+      setRecoveredSession(null);
+    }
+  }, [isStreaming, recoveredSession]);
 
   // Auto-minimize ThreadsPanel when streaming starts on first message
   useEffect(() => {
@@ -294,11 +364,23 @@ export function ThreadInterface({
 
   // Determine if we should show the active streaming response
   // Show it while streaming OR after completion but before adding to history
+  // OR if we have a recovered session
   const lastMessageIsFromUser =
     conversationHistory.length > 0 &&
     conversationHistory[conversationHistory.length - 1].role === 'user';
   const shouldShowActiveResponse =
-    isStreaming || (response && lastMessageIsFromUser && !error);
+    isStreaming ||
+    (response && lastMessageIsFromUser && !error) ||
+    recoveredSession !== null;
+
+  // Use recovered session data if available, otherwise use current streaming data
+  const activeResponse = recoveredSession?.response ?? response;
+  const activeCitations = recoveredSession?.citations ?? citations;
+  const activeConfidenceScore =
+    recoveredSession?.confidenceScore ?? confidenceScore;
+  const activeIsStreaming = recoveredSession?.isStreaming ?? isStreaming;
+  const activeError = recoveredSession?.error ?? error;
+  const activeErrorCode = recoveredSession?.errorCode ?? errorCode;
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -327,16 +409,16 @@ export function ThreadInterface({
               </div>
             ))}
 
-            {/* Active Streaming Response - Only show while actively streaming or completed but not yet in history */}
+            {/* Active Streaming Response - Show while streaming, after completion but not in history, or recovered from store */}
             {shouldShowActiveResponse && (
               <ThreadResponse
-                response={response}
-                citations={citations}
-                isStreaming={isStreaming}
-                error={error}
-                errorCode={errorCode}
+                response={activeResponse}
+                citations={activeCitations}
+                isStreaming={activeIsStreaming}
+                error={activeError}
+                errorCode={activeErrorCode}
                 retryCount={retryCount}
-                confidenceScore={confidenceScore}
+                confidenceScore={activeConfidenceScore}
                 onRetry={handleRetry}
               />
             )}
@@ -354,7 +436,10 @@ export function ThreadInterface({
         )}
 
         {/* Thread Input (Fixed at Bottom) - Same width as messages */}
-        <ThreadInput onSubmit={handleSubmitMessage} isStreaming={isStreaming} />
+        <ThreadInput
+          onSubmit={handleSubmitMessage}
+          isStreaming={activeIsStreaming}
+        />
       </div>
     </div>
   );

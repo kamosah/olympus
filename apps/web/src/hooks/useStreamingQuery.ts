@@ -12,6 +12,7 @@ import {
   type SSEEvent,
 } from '@/lib/api/queries-client';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useStreamingStore } from '@/lib/stores/streaming-store';
 import { useCallback, useRef, useState } from 'react';
 
 interface StreamingState {
@@ -48,6 +49,7 @@ interface StreamingState {
  */
 export function useStreamingQuery() {
   const { accessToken, user } = useAuthStore();
+  const streamingStore = useStreamingStore();
   const eventSourceRef = useRef<EventSource | null>(null);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentParamsRef = useRef<{
@@ -155,42 +157,94 @@ export function useStreamingQuery() {
                     ...prev,
                     threadId: data.thread_id,
                   }));
+
+                  // Create streaming session in store for cross-navigation persistence
+                  if (data.thread_id) {
+                    streamingStore.createSession(
+                      data.thread_id,
+                      params.query,
+                      params.organizationId,
+                      params.spaceId
+                    );
+                  }
                   break;
 
                 case 'token':
                   // Append token to response
-                  setState((prev) => ({
-                    ...prev,
-                    response: prev.response + data.content,
-                  }));
+                  setState((prev) => {
+                    const newResponse = prev.response + data.content;
+
+                    // Update streaming store for cross-navigation persistence
+                    if (prev.threadId) {
+                      streamingStore.updateSession(prev.threadId, {
+                        response: newResponse,
+                      });
+                    }
+
+                    return {
+                      ...prev,
+                      response: newResponse,
+                    };
+                  });
                   break;
 
                 case 'replace':
                   // Replace entire response (used for low-confidence fallback)
-                  setState((prev) => ({
-                    ...prev,
-                    response: data.content,
-                  }));
+                  setState((prev) => {
+                    // Update streaming store for cross-navigation persistence
+                    if (prev.threadId) {
+                      streamingStore.updateSession(prev.threadId, {
+                        response: data.content,
+                      });
+                    }
+
+                    return {
+                      ...prev,
+                      response: data.content,
+                    };
+                  });
                   break;
 
                 case 'citations':
                   // Update citations and confidence score
-                  setState((prev) => ({
-                    ...prev,
-                    citations: data.sources,
-                    confidenceScore: data.confidence_score,
-                  }));
+                  setState((prev) => {
+                    // Update streaming store for cross-navigation persistence
+                    if (prev.threadId) {
+                      streamingStore.updateSession(prev.threadId, {
+                        citations: data.sources,
+                        confidenceScore: data.confidence_score,
+                      });
+                    }
+
+                    return {
+                      ...prev,
+                      citations: data.sources,
+                      confidenceScore: data.confidence_score,
+                    };
+                  });
                   break;
 
                 case 'done':
                   // Streaming complete
-                  setState((prev) => ({
-                    ...prev,
-                    isStreaming: false,
-                    confidenceScore: data.confidence_score,
-                    threadId: data.thread_id || prev.threadId,
-                    retryCount: 0, // Reset retry count on success
-                  }));
+                  setState((prev) => {
+                    const threadId = data.thread_id || prev.threadId;
+
+                    // Complete streaming session in store
+                    if (threadId) {
+                      streamingStore.updateSession(threadId, {
+                        confidenceScore: data.confidence_score,
+                      });
+                      streamingStore.completeSession(threadId);
+                    }
+
+                    return {
+                      ...prev,
+                      isStreaming: false,
+                      confidenceScore: data.confidence_score,
+                      threadId,
+                      retryCount: 0, // Reset retry count on success
+                    };
+                  });
 
                   // Note: No query invalidation here - ThreadInterface handles UI updates optimistically
                   // ThreadsPanel will refetch naturally on mount or navigation
@@ -206,12 +260,23 @@ export function useStreamingQuery() {
                   };
                   error.errorCode = data.error_code;
 
-                  setState((prev) => ({
-                    ...prev,
-                    isStreaming: false,
-                    error: data.message,
-                    errorCode: data.error_code,
-                  }));
+                  setState((prev) => {
+                    // Update streaming store with error
+                    if (prev.threadId) {
+                      streamingStore.updateSession(prev.threadId, {
+                        isStreaming: false,
+                        error: data.message,
+                        errorCode: data.error_code,
+                      });
+                    }
+
+                    return {
+                      ...prev,
+                      isStreaming: false,
+                      error: data.message,
+                      errorCode: data.error_code,
+                    };
+                  });
 
                   eventSource.close();
                   reject(error);
@@ -360,6 +425,13 @@ export function useStreamingQuery() {
   const reset = useCallback(() => {
     stopStreaming();
     currentParamsRef.current = null;
+
+    // Clear streaming session from store
+    const currentThreadId = state.threadId;
+    if (currentThreadId) {
+      streamingStore.clearSession(currentThreadId);
+    }
+
     setState({
       response: '',
       citations: [],
@@ -369,7 +441,7 @@ export function useStreamingQuery() {
       threadId: null,
       retryCount: 0,
     });
-  }, [stopStreaming]);
+  }, [stopStreaming, state.threadId, streamingStore]);
 
   return {
     response: state.response,

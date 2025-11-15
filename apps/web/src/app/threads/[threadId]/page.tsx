@@ -3,6 +3,7 @@
 import { ThreadInterface } from '@/components/threads/ThreadInterface';
 import { ThreadsPanel } from '@/components/threads/ThreadsPanel';
 import { useThread } from '@/hooks/useThreads';
+import { useStreamingStore } from '@/lib/stores';
 import { Loader2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 
@@ -17,9 +18,18 @@ import { useParams } from 'next/navigation';
  */
 export default function ThreadPage() {
   const { threadId } = useParams() as { threadId: string };
+  const streamingStore = useStreamingStore();
   const { thread, isLoading, error, isSuccess } = useThread(threadId);
 
-  if (isLoading) {
+  // Check if there's an active streaming session for this thread
+  // If yes, skip loading state and show ThreadInterface immediately
+  const activeSession = streamingStore.getSession(threadId);
+  const hasActiveStream = activeSession?.isStreaming === true;
+
+  // Show loading spinner only if:
+  // 1. We're still loading the thread data
+  // 2. AND there's no active streaming session to show
+  if (isLoading && !hasActiveStream) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -27,8 +37,9 @@ export default function ThreadPage() {
     );
   }
 
-  // Handle error state
-  if (error) {
+  // Handle error state - but only if there's no active streaming session
+  // If we have an active stream, show the ThreadInterface instead (thread is being created)
+  if (error && !hasActiveStream) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
         <div className="text-center">
@@ -42,7 +53,9 @@ export default function ThreadPage() {
   }
 
   // Handle not found state (query succeeded but no thread)
-  if (isSuccess && !thread) {
+  // BUT: If we have an active streaming session, this is expected (thread being created)
+  // Don't show error - let ThreadInterface handle it
+  if (isSuccess && !thread && !hasActiveStream) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
         <div className="text-center">
@@ -57,9 +70,17 @@ export default function ThreadPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] gap-6">
-      {/* ThreadInterface - Shows conversation history */}
+      {/* ThreadInterface - Shows conversation history OR active streaming session */}
       <div className="flex-1 overflow-hidden">
-        <ThreadInterface initialThread={thread || undefined} />
+        {/*
+          Pass thread data if available, otherwise ThreadInterface will check streaming store.
+          If there's an active stream, ThreadInterface will show it even if thread is null.
+        */}
+        <ThreadInterface
+          initialThread={
+            thread || (hasActiveStream ? { id: threadId } as any : undefined)
+          }
+        />
       </div>
 
       {/* ThreadsPanel - Collapsed by default on individual thread pages */}
