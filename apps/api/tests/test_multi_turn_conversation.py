@@ -13,7 +13,6 @@ from langchain.schema import AIMessage, HumanMessage, SystemMessage
 
 from app.agents.thread_agent import generate_response, generate_response_streaming
 from app.models.message import Message, MessageRole
-from app.models.space import Space, SpaceMember
 from app.models.thread import Thread
 from app.models.user import User
 from app.services.ai_agent import AIAgentService
@@ -72,8 +71,7 @@ class TestConversationHistory:
 
             # Verify response
             assert (
-                result["response"]
-                == "AI has many applications in healthcare, finance, and more."
+                result["response"] == "AI has many applications in healthcare, finance, and more."
             )
 
     @pytest.mark.asyncio
@@ -136,6 +134,7 @@ class TestConversationHistory:
             result = await generate_response(state)
 
             # Verify LLM was called
+            assert result["response"] == "AI is artificial intelligence."
             call_args = mock_llm.ainvoke.call_args[0][0]
 
             # Should only have SystemMessage + current query (no history)
@@ -172,10 +171,13 @@ class TestThreadContinuation:
             yield "AI has many applications."
 
         events = []
-        with patch(
-            "app.services.ai_agent.generate_response_streaming",
-            side_effect=mock_generate_streaming,
-        ), patch("app.services.ai_agent.retrieve_context", side_effect=mock_retrieve_context):
+        with (
+            patch(
+                "app.services.ai_agent.generate_response_streaming",
+                side_effect=mock_generate_streaming,
+            ),
+            patch("app.services.ai_agent.retrieve_context", side_effect=mock_retrieve_context),
+        ):
             async for event in service.process_thread_stream(
                 query="Tell me more",
                 db=mock_db_session,
@@ -219,10 +221,13 @@ class TestThreadContinuation:
             yield "Response from owner"
 
         events = []
-        with patch(
-            "app.services.ai_agent.generate_response_streaming",
-            side_effect=mock_generate_streaming,
-        ), patch("app.services.ai_agent.retrieve_context", side_effect=mock_retrieve_context):
+        with (
+            patch(
+                "app.services.ai_agent.generate_response_streaming",
+                side_effect=mock_generate_streaming,
+            ),
+            patch("app.services.ai_agent.retrieve_context", side_effect=mock_retrieve_context),
+        ):
             async for event in service.process_thread_stream(
                 query="Tell me more",
                 db=mock_db_session,
@@ -263,10 +268,13 @@ class TestThreadContinuation:
             yield "Response from member"
 
         events = []
-        with patch(
-            "app.services.ai_agent.generate_response_streaming",
-            side_effect=mock_generate_streaming,
-        ), patch("app.services.ai_agent.retrieve_context", side_effect=mock_retrieve_context):
+        with (
+            patch(
+                "app.services.ai_agent.generate_response_streaming",
+                side_effect=mock_generate_streaming,
+            ),
+            patch("app.services.ai_agent.retrieve_context", side_effect=mock_retrieve_context),
+        ):
             async for event in service.process_thread_stream(
                 query="Tell me more",
                 db=mock_db_session,
@@ -294,8 +302,8 @@ class TestThreadContinuation:
 
         service = AIAgentService()
 
-        with pytest.raises(ValueError, match="Thread not found or access denied"):
-            async for event in service.process_thread_stream(
+        with pytest.raises(ValueError, match="Thread not found or access denied"):  # noqa: PT012
+            async for event in service.process_thread_stream(  # noqa: B007
                 query="Tell me more",
                 db=mock_db_session,
                 user_id=unauthorized_user.id,  # Unauthorized user
@@ -311,8 +319,8 @@ class TestThreadContinuation:
 
         service = AIAgentService()
 
-        with pytest.raises(ValueError, match="user_id is required"):
-            async for event in service.process_thread_stream(
+        with pytest.raises(ValueError, match="user_id is required"):  # noqa: PT012
+            async for event in service.process_thread_stream(  # noqa: B007
                 query="Tell me more",
                 db=mock_db_session,
                 user_id=None,  # Missing user_id
@@ -333,8 +341,8 @@ class TestThreadContinuation:
 
         service = AIAgentService()
 
-        with pytest.raises(ValueError, match="Thread not found or access denied"):
-            async for event in service.process_thread_stream(
+        with pytest.raises(ValueError, match="Thread not found or access denied"):  # noqa: PT012
+            async for event in service.process_thread_stream(  # noqa: B007
                 query="Tell me more",
                 db=mock_db_session,
                 user_id=mock_user.id,
@@ -378,10 +386,13 @@ class TestMessageCreation:
             yield "AI is artificial intelligence."
 
         events = []
-        with patch(
-            "app.services.ai_agent.generate_response_streaming",
-            side_effect=mock_generate_streaming,
-        ), patch("app.services.ai_agent.retrieve_context", side_effect=mock_retrieve_context):
+        with (
+            patch(
+                "app.services.ai_agent.generate_response_streaming",
+                side_effect=mock_generate_streaming,
+            ),
+            patch("app.services.ai_agent.retrieve_context", side_effect=mock_retrieve_context),
+        ):
             async for event in service.process_thread_stream(
                 query="What is AI?",
                 db=mock_db_session,
@@ -429,10 +440,13 @@ class TestMessageCreation:
             yield "intelligence."
 
         events = []
-        with patch(
-            "app.services.ai_agent.generate_response_streaming",
-            side_effect=mock_generate_streaming,
-        ), patch("app.services.ai_agent.retrieve_context", side_effect=mock_retrieve_context):
+        with (
+            patch(
+                "app.services.ai_agent.generate_response_streaming",
+                side_effect=mock_generate_streaming,
+            ),
+            patch("app.services.ai_agent.retrieve_context", side_effect=mock_retrieve_context),
+        ):
             async for event in service.process_thread_stream(
                 query="What is AI?",
                 db=mock_db_session,
@@ -478,10 +492,13 @@ class TestMessageCreation:
             yield "AI has many applications."
 
         events = []
-        with patch(
-            "app.services.ai_agent.generate_response_streaming",
-            side_effect=mock_generate_streaming,
-        ), patch("app.services.ai_agent.retrieve_context", side_effect=mock_retrieve_context):
+        with (
+            patch(
+                "app.services.ai_agent.generate_response_streaming",
+                side_effect=mock_generate_streaming,
+            ),
+            patch("app.services.ai_agent.retrieve_context", side_effect=mock_retrieve_context),
+        ):
             async for event in service.process_thread_stream(
                 query="Tell me more",
                 db=mock_db_session,

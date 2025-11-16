@@ -14,7 +14,7 @@ from app.main import app
 from app.models.message import Message, MessageRole
 from app.models.organization import Organization
 from app.models.organization_member import OrganizationMember, OrganizationRole
-from app.models.space import Space, SpaceMember
+from app.models.space import Space
 from app.models.thread import Thread, ThreadStatus
 from app.models.user import User
 
