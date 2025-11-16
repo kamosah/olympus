@@ -262,7 +262,7 @@ class AIAgentService:
             db: Database session for vector search and storage
             organization_id: Organization ID (required if save_to_db=True and space_id not provided)
             space_id: Optional space ID to filter search results
-            user_id: User ID for thread attribution (required if save_to_db=True)
+            user_id: User ID for thread attribution (required if save_to_db=True or if thread_id is provided for authorization)
             context: Optional pre-retrieved document chunks (bypasses vector search)
             save_to_db: Whether to save thread and results to database
             thread_id: Optional existing thread ID for multi-turn conversation continuation
@@ -277,6 +277,7 @@ class AIAgentService:
             ...         "What is AI?",
             ...         db=db,
             ...         organization_id=org_uuid,
+            ...         user_id=user_uuid,
             ...         save_to_db=True,
             ...     ):
             ...         if event["type"] == "token":
@@ -286,6 +287,7 @@ class AIAgentService:
             >>> async for event in service.process_thread_stream(
             ...     "Tell me more about that",
             ...     db=db,
+            ...     user_id=user_uuid,
             ...     thread_id=existing_thread_id,
             ...     save_to_db=True,
             ... ):
